@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CheckCheck, Trash2, Timer, AlertTriangle, Sparkles, Swords, Info, Coins, ArrowLeft } from "lucide-react";
+import { Bell, CheckCheck, Trash2, Timer, AlertTriangle, Sparkles, Swords, Info, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { markAsReadAction, markAllAsReadAction, dismissNotificationAction, clearAllReadAction } from "@/lib/actions/notifications";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-const iconMap: Record<string, typeof Bell> = { Bell, Timer, AlertTriangle, Sparkles, Swords, Info, Coins };
 const toneMap: Record<string, string> = {
   deadline: "border-rose-glow/30 bg-rose-glow/5 text-rose-glow",
   warning: "border-amber-glow/30 bg-amber-glow/5 text-amber-glow",

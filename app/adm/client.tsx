@@ -14,13 +14,9 @@ import {
   Palette,
   Code2,
   Rocket,
-  Pizza,
-  GraduationCap,
-  ShoppingBag,
   Briefcase,
   Plus,
   Timer,
-  AlertTriangle,
 } from "lucide-react";
 import { getProjects } from "@/lib/actions/projects";
 import { getTasks } from "@/lib/actions/tasks";
@@ -272,26 +268,24 @@ export function DashboardClient({ autoOpenProject = false }: { autoOpenProject?:
   const { data: allProjectsData = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: () => getProjects(),
+    staleTime: 30000,
   });
 
   const { data: tasksData = [] } = useQuery({
     queryKey: ["tasks"],
     queryFn: () => getTasks(),
+    staleTime: 30000,
   });
 
-  const allProjects: Project[] = allProjectsData.map((p: any) => ({
+  const allProjects: Project[] = allProjectsData.map((p) => ({
     id: p.id, name: p.name, clientName: p.clientName, price: p.price, status: p.status,
   }));
 
-  const tasks = tasksData.map((t: any) => ({
-    dueDate: t.dueDate, title: t.title, blockType: t.blockType, projectName: t.projectName,
+  const tasks = tasksData.map((t) => ({
+    dueDate: t.dueDate, title: t.title, blockType: t.blockType,
   }));
 
-  const totalRevenue = allProjects.reduce((s, p) => s + (p.price || 0), 0);
-  const activeClients = allProjects.filter((p) => p.status === "active").length;
-  const completedTasks = tasksData.filter((t: any) => t.completed).length;
-  const totalTasks = tasksData.length;
-  const taskCompletion = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
 
   const week = buildWeek(tasks);
   const today = new Date();
@@ -302,7 +296,7 @@ export function DashboardClient({ autoOpenProject = false }: { autoOpenProject?:
   const sprintNumber = Math.floor((sprintWeek - 1) / 2) + 1;
 
   function handleAddTask(date?: string) { setSelectedDate(date); setTaskSheetOpen(true); }
-  function handleProjectCreated(_project: { id: string; name: string }) {
+  function handleProjectCreated() {
     if (autoOpenProject) {
       window.history.replaceState({}, "", "/adm");
     }

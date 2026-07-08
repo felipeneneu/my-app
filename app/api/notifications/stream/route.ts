@@ -1,4 +1,5 @@
 import { generateAndStoreNotifications } from "@/lib/engine/notifications";
+import { getNextBlock } from "@/lib/engine/scheduler";
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,6 @@ export async function GET(req: Request) {
         }
       };
 
-      const { getNextBlock } = require("@/lib/engine/scheduler");
       const sendBlockUpdate = () => {
         const next = getNextBlock();
         if (next) {
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       checkAndSend();
       sendBlockUpdate();
 
-      const checkInterval = setInterval(checkAndSend, 45000);
+      const checkInterval = setInterval(checkAndSend, 40000);
       const blockInterval = setInterval(sendBlockUpdate, 30000);
 
       req.signal.addEventListener("abort", () => {

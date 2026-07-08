@@ -1,10 +1,10 @@
 "use server";
 
 import { db } from "@/db";
-import { habits, hunterStatus } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { habits } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getHunterStatus, addXp, addGold } from "./hunter";
+import { addXp, addGold } from "./hunter";
 
 export async function getTodaysHabits() {
   const today = new Date().toISOString().split("T")[0];

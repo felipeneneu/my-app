@@ -1,18 +1,20 @@
-import { getLeads } from "@/lib/actions/quotations";
-import { getMonthlyGoal } from "@/lib/actions/financial";
-import { QuotationsClient } from "./client";
+import { getBudgets } from "@/lib/actions/budget";
+import { getContracts } from "@/lib/actions/contract";
+import { getReceipts } from "@/lib/actions/receipt";
+import { QuotationsHubClient } from "./client";
 
-export default async function QuotationsPage() {
-  const [leads, monthlyGoal] = await Promise.all([
-    getLeads(),
-    getMonthlyGoal(),
+export default async function QuotationsHubPage() {
+  const [budgets, contracts, receipts] = await Promise.all([
+    getBudgets(),
+    getContracts(),
+    getReceipts(),
   ]);
 
   return (
-    <QuotationsClient
-      leads={leads.map(l => ({ id: l.id, businessName: l.businessName, email: l.email ?? "", status: l.status, createdAt: l.createdAt }))}
-      monthlyGoal={monthlyGoal}
+    <QuotationsHubClient
+      budgets={budgets.map(b => ({ id: b.id, contentJson: b.contentJson }))}
+      contracts={contracts.map(c => ({ id: c.id, contentJson: c.contentJson }))}
+      receipts={receipts.map(r => ({ id: r.id, contentJson: r.contentJson }))}
     />
   );
 }
-

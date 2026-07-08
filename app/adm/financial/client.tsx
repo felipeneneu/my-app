@@ -29,7 +29,7 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
 }) {
   const [fixed, setFixed] = useState<FixedCost[]>(initialFixed);
   const [projectCosts, setProjectCosts] = useState<ProjectCost[]>(initialProjectCosts);
-  const [revenues, setRevenues] = useState<Revenue[]>(initialRevenues);
+  const [revenues] = useState<Revenue[]>(initialRevenues);
   const [monthlyGoal, setMonthlyGoal] = useState(initialGoal);
 
   const [nfLabel, setNfLabel] = useState("");
@@ -63,7 +63,7 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
     setNfLabel(""); setNfAmount(""); toast.success("Custo fixo registrado.");
   }
 
-  async function removeFixed(id: string, item: FixedCost) {
+  async function removeFixed(id: string) {
     await deleteFixedCost(id);
     setFixed((xs) => xs.filter((x) => x.id !== id));
   }
@@ -158,7 +158,7 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
                   <span className="flex-1 text-foreground">{f.label}</span>
                   <span className="text-mono text-[10px] uppercase text-muted-foreground">{f.category}</span>
                   <span className="w-24 text-right text-mono text-rose-glow">-{formatBRL(f.amount)}</span>
-                  <Button variant="ghost" size="icon" onClick={() => removeFixed(f.id, f)}><Trash2 size={13} /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => removeFixed(f.id)}><Trash2 size={13} /></Button>
                 </li>
               ))}
             </ul>

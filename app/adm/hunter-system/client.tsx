@@ -57,7 +57,7 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
   const [gold, setGold] = useState(hunter.goldBalance);
   const [xp, setXp] = useState(hunter.currentXp);
   const [level, setLevel] = useState(hunter.level);
-  const [rank, setRank] = useState(hunter.hunterRank);
+  const [rank] = useState(hunter.hunterRank);
   const [maxXp, setMaxXp] = useState(hunter.maxXp);
   const [localQuests, setLocalQuests] = useState(questTemplates.map(q => ({
     ...q,

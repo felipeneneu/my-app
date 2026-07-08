@@ -3,9 +3,10 @@ import { sqliteTable, text, integer, foreignKey } from "drizzle-orm/sqlite-core"
 export const hunterRank = ["E", "D", "C", "B", "A", "S"] as const;
 export const questType = ["lead", "project", "xp", "general"] as const;
 export const leadStatus = ["new", "contacted", "negotiating", "won", "lost"] as const;
+export const pipelineStage = ["hot", "warm", "cold"] as const;
 export const projectStatus = ["active", "paused", "completed", "cancelled"] as const;
 export const expenseType = ["fixed", "variable", "software", "infrastructure"] as const;
-export const documentType = ["contract", "invoice", "proposal"] as const;
+export const documentType = ["contract", "invoice", "proposal", "budget", "receipt", "os"] as const;
 export const taskBlockType = ["deep_focus", "meeting", "deadline"] as const;
 export const notificationType = ["info", "warning", "deadline", "insight", "suggestion", "system"] as const;
 export const notificationPriority = ["low", "medium", "high"] as const;
@@ -35,7 +36,12 @@ export const leads = sqliteTable("leads", {
   id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
   businessName: text("business_name").notNull(),
   email: text("email"),
-  status: text("status", { enum: ["new", "contacted", "negotiating", "won", "lost"] }).notNull(),
+  phone: text("phone"),
+  status: text("status", { enum: ["new", "contacted", "negotiating", "won", "lost"] }).notNull().default("new"),
+  pipelineStage: text("pipeline_stage", { enum: ["hot", "warm", "cold"] }),
+  notes: text("notes"),
+  lastContact: text("last_contact"),
+  contactsCount: integer("contacts_count").notNull().default(0),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
@@ -136,7 +142,7 @@ export const documents = sqliteTable(
   {
     id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
     projectId: text("project_id").notNull(),
-    type: text("type", { enum: ["contract", "invoice", "proposal"] }).notNull(),
+    type: text("type", { enum: ["contract", "invoice", "proposal", "budget", "receipt", "os"] }).notNull(),
     contentJson: text("content_json").notNull(),
   },
   (table) => [
@@ -225,6 +231,56 @@ export const habits = sqliteTable("habits", {
   done: integer("done", { mode: "boolean" }).notNull().default(false),
   date: text("date").notNull(),
 });
+
+export const companyInfo = sqliteTable("company_info", {
+  id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+  tradingName: text("trading_name").notNull().default(""),
+  legalName: text("legal_name").notNull().default(""),
+  document: text("document").notNull().default(""),
+  stateRegistration: text("state_registration").default(""),
+  cep: text("cep").default(""),
+  street: text("street").default(""),
+  number: text("number").default(""),
+  complement: text("complement").default(""),
+  neighborhood: text("neighborhood").default(""),
+  city: text("city").default(""),
+  state: text("state").default(""),
+  phone: text("phone").default(""),
+  email: text("email").default(""),
+  logo: text("logo").default(""),
+  bankName: text("bank_name").default(""),
+  bankAgency: text("bank_agency").default(""),
+  bankAccount: text("bank_account").default(""),
+  pixKey: text("pix_key").default(""),
+  pixKeyType: text("pix_key_type", { enum: ["cpf", "cnpj", "email", "phone", "random"] }).notNull().default("random"),
+});
+
+export const briefingNotes = sqliteTable(
+  "briefing_notes",
+  {
+    id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+    projectId: text("project_id").notNull(),
+    content: text("content").notNull(),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    foreignKey({ columns: [table.projectId], foreignColumns: [projects.id] }).onDelete("cascade"),
+  ],
+);
+
+export const projectTokens = sqliteTable(
+  "project_tokens",
+  {
+    id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+    projectId: text("project_id").notNull(),
+    token: text("token").notNull().unique(),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    foreignKey({ columns: [table.projectId], foreignColumns: [projects.id] }).onDelete("cascade"),
+  ],
+);
 
 export const workspaceConfig = sqliteTable("workspace_config", {
   id: text("id").primaryKey().$defaultFn(crypto.randomUUID),

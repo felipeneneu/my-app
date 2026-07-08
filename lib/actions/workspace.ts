@@ -22,7 +22,7 @@ export async function updateWorkspaceConfig(data: Partial<{
   if (existing.length > 0) {
     await db.update(workspaceConfig).set(data).where(eq(workspaceConfig.id, existing[0].id));
   } else {
-    await db.insert(workspaceConfig).values(data as any);
+    await db.insert(workspaceConfig).values(data as (typeof workspaceConfig)["$inferInsert"]);
   }
   revalidatePath("/adm");
 }

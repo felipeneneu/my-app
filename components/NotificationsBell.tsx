@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CheckCheck, Trash2, Sparkles, AlertTriangle, Timer, Info, Swords, Coins } from "lucide-react";
+import Link from "next/link";
+import { Bell, CheckCheck, Trash2, Sparkles, AlertTriangle, Timer, Info, Swords } from "lucide-react";
 import { useNotificationStream } from "@/hooks/use-notification-stream";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +10,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { markAsReadAction, markAllAsReadAction, dismissNotificationAction, clearAllReadAction } from "@/lib/actions/notifications";
-
-const iconMap: Record<string, typeof Sparkles> = {
-  Sparkles, AlertTriangle, Timer, Info, Swords, Coins, Bell,
-};
 
 export function NotificationsBell() {
   const { unreadCount, notifications, connected } = useNotificationStream();
@@ -42,18 +39,16 @@ export function NotificationsBell() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger >
-        <Button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-hairline bg-(--surface-1) hover:bg-(--surface-2) transition-colors">
-          <Bell size={16} className="text-muted-foreground" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-glow px-1 text-[9px] font-bold text-(--surface-0)">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-          {connected && (
-            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-glow" />
-          )}
-        </Button>
+      <PopoverTrigger className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-hairline bg-(--surface-1) hover:bg-(--surface-2) transition-colors">
+        <Bell size={16} className="text-muted-foreground" />
+        {unreadCount > 0 && (
+          <Badge className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-glow px-1 text-[9px] font-bold text-(--surface-0)">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </Badge>
+        )}
+        {connected && (
+          <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-glow" />
+        )}
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-[380px] p-0">
         <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
@@ -122,9 +117,9 @@ export function NotificationsBell() {
         </ScrollArea>
         <Separator />
         <div className="px-4 py-2">
-          <a href="/adm/notifications" className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow hover:brightness-110">
+          <Link href="/adm/notifications" className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow hover:brightness-110">
             Ver todas as notificações →
-          </a>
+          </Link>
         </div>
       </PopoverContent>
     </Popover>

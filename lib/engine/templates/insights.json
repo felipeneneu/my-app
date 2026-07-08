@@ -45,7 +45,7 @@
     {
       "id": "monthly-goal-pacing",
       "condition": "monthly_goal_track",
-      "message": "Você está em {percent}% da meta mensal de {goal}. {remaining} dias restantes — média necessária de {daily}/dia.",
+      "message": "Você está em {percent}% da meta mensal de R$ {goal}. {remaining} dias restantes — média necessária de R$ {daily}/dia.",
       "icon": "Target",
       "tone": "violet"
     },
@@ -69,6 +69,62 @@
       "message": "Você tem {count} leads sem retorno há mais de {days} dias. Um follow-up rápido pode render novos projetos.",
       "icon": "Mail",
       "tone": "violet"
+    },
+    {
+      "id": "pipeline-balance",
+      "condition": "pipeline_leads_stale",
+      "message": "Você tem {hotCount} leads quentes, mas {coldStaleCount} leads frios sem contato há {days} dias. Reative o contato com os frios.",
+      "icon": "Radio",
+      "tone": "violet"
+    },
+    {
+      "id": "client-health-score",
+      "condition": "client_health_low",
+      "message": "Cliente \"{clientName}\" está com score de saúde baixo. Último projeto foi há {days} dias. Que tal um follow-up?",
+      "icon": "Heart",
+      "tone": "amber"
+    },
+    {
+      "id": "weekly-prospecting",
+      "condition": "prospecting_this_week",
+      "message": "Esta semana você prospectou {count} leads. Meta semanal: {goal}. {remaining} restantes para bater a meta.",
+      "icon": "Target",
+      "tone": "emerald"
+    },
+    {
+      "id": "revenue-forecast",
+      "condition": "pipeline_value",
+      "message": "Pipeline atual: R$ {hotValue} em leads quentes + R$ {warmValue} mornos = R$ {totalForecast} projetados para o mês.",
+      "icon": "TrendingUp",
+      "tone": "violet"
+    },
+    {
+      "id": "pipeline-conversion",
+      "condition": "pipeline_conversion_rate",
+      "message": "Taxa de conversão do pipeline: {rate}% nos últimos 30 dias. {comparison} em relação ao mês passado.",
+      "icon": "TrendingUp",
+      "tone": "emerald"
+    },
+    {
+      "id": "best-contact-time",
+      "condition": "best_time_to_contact",
+      "message": "Seu melhor horário de prospecção é {timeSlot} — {percentage}% dos seus contatos foram feitos nesse período.",
+      "icon": "Clock",
+      "tone": "violet"
+    },
+    {
+      "id": "project-profit-analysis",
+      "condition": "project_profit_analysis",
+      "message": "Projeto \"{projectName}\": lucro de R$ {profit} ({margin}% de margem). {suggestion}",
+      "icon": "BarChart3",
+      "tone": "emerald"
+    },
+    {
+      "id": "weekly-productivity",
+      "condition": "weekly_task_completion",
+      "message": "Você completou {done} de {total} tarefas esta semana ({rate}%). {suggestion}",
+      "icon": "CheckCircle2",
+      "tone": "emerald"
     }
   ]
 }

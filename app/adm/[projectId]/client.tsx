@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -93,7 +92,7 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
     await applyTemplateToProject(templateId, project.id);
     const { getProjectChecklistItems } = await import("@/lib/actions/checklists");
     const items = await getProjectChecklistItems(project.id);
-    setChecklistItems(items.map((i: any) => ({ id: i.id, label: i.label, completed: i.completed })));
+    setChecklistItems(items.map((i) => ({ id: i.id, label: i.label, completed: i.completed })));
     toast.success("Template aplicado ao projeto");
   }
 

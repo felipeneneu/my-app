@@ -4,8 +4,6 @@ import { AppShell } from "@/components/AppShell";
 import { redirect } from "next/navigation";
 import { getHunterStatus } from "@/lib/actions/hunter";
 
-export const dynamic = "force-dynamic";
-
 export default async function AdmLayout({ children }: { children: React.ReactNode }) {
   const dbProjects = await db.select().from(projects);
   const config = await db.select().from(workspaceConfig).then((r) => r[0]) ?? {

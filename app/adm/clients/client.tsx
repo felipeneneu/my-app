@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -43,7 +42,7 @@ export function ClientsClient({ initial }: { initial: Client[] }) {
     toast.success("Cliente cadastrado");
   }
 
-  async function handleDelete(id: string, _clientName: string) {
+  async function handleDelete(id: string) {
     await deleteClient(id);
     queryClient.invalidateQueries({ queryKey: ["clients"] });
     toast.success("Cliente removido");
@@ -114,7 +113,7 @@ export function ClientsClient({ initial }: { initial: Client[] }) {
                       title="Remover cliente"
                       description={`Deletar "${c.name}" permanentemente?`}
                       confirmLabel="Remover"
-                      onConfirm={() => handleDelete(c.id, c.name)}
+                      onConfirm={() => handleDelete(c.id)}
                     >
                       <Button variant="ghost" size="icon">
                         <Trash2 size={14} className="text-muted-foreground hover:text-rose-glow" />

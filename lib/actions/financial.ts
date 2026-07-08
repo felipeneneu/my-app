@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { fixedCosts, businessExpenses, revenues, projects, workspaceConfig } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { expenseType } from "@/db/schema";
 
 export async function getFixedCosts() {
   return db.select().from(fixedCosts).where(eq(fixedCosts.active, true));
@@ -24,7 +25,12 @@ export async function getProjectCosts() {
 }
 
 export async function addProjectCost(data: { projectId: string; label: string; amount: number; type: string }) {
-  await db.insert(businessExpenses).values(data as any);
+  await db.insert(businessExpenses).values({
+    description: data.label,
+    amount: data.amount,
+    type: data.type as (typeof expenseType)[number],
+    projectId: data.projectId,
+  });
   revalidatePath("/adm/financial");
   revalidatePath("/adm/[projectId]");
 }

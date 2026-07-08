@@ -20,10 +20,10 @@ export async function generateAndStoreNotifications() {
 
     if (existing.length === 0) {
       await db.insert(notifications).values({
-        type: notif.type as any,
+        type: notif.type,
         title: notif.title,
         message: notif.message,
-        priority: notif.priority as any,
+        priority: notif.priority,
       });
     }
   }

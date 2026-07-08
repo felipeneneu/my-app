@@ -48,6 +48,55 @@
       "message": "3 dias seguidos de foco profundo! Seu ritmo está excelente. Que tal manter mais {hours}h hoje e fechar a semana com chave de ouro?",
       "action": "Manter ritmo",
       "icon": "Flame"
+    },
+    {
+      "id": "prospecting-morning",
+      "condition": "morning_free_prospecting",
+      "message": "Manhã livre! É o melhor horário para enviar cold emails — taxa de abertura é 3x maior. Que tal dedicar {hours}h à prospecção?",
+      "action": "Iniciar prospecção",
+      "icon": "Radio"
+    },
+    {
+      "id": "follow-up-wednesday",
+      "condition": "follow_ups_pending",
+      "message": "Você tem {count} follow-ups pendentes com leads. Quarta-feira é o dia com maior taxa de resposta. Reserve {minutes}min para isso.",
+      "action": "Revisar follow-ups",
+      "icon": "Mail"
+    },
+    {
+      "id": "pipeline-review-friday",
+      "condition": "friday_pipeline_review",
+      "message": "Sexta-feira! Hora de revisar o pipeline da semana: {hot} hot, {warm} warm, {cold} cold. Planeje a prospecção da próxima semana.",
+      "action": "Revisar pipeline",
+      "icon": "Radio"
+    },
+    {
+      "id": "deal-closing-time",
+      "condition": "hot_leads_to_close",
+      "message": "Você tem {count} leads quentes parados no pipeline. Uma call de fechamento hoje pode render R$ {potentialValue} ainda esta semana.",
+      "action": "Fechar negócio",
+      "icon": "TrendingUp"
+    },
+    {
+      "id": "os-delivery-pending",
+      "condition": "os_pending_delivery",
+      "message": "A OS do projeto \"{projectName}\" está pronta mas não foi enviada ao cliente. Envie hoje para não atrasar o kickoff.",
+      "action": "Enviar OS",
+      "icon": "ClipboardList"
+    },
+    {
+      "id": "client-follow-up",
+      "condition": "client_no_contact_15_days",
+      "message": "O cliente \"{clientName}\" não tem interação registrada há {days} dias. Um check-in rápido fortalece o relacionamento.",
+      "action": "Entrar em contato",
+      "icon": "Phone"
+    },
+    {
+      "id": "budget-review",
+      "condition": "pending_budgets",
+      "message": "Você tem {count} orçamentos pendentes para revisar. Clientes que recebem proposta em até 24h têm 40% mais chance de fechar.",
+      "action": "Revisar orçamentos",
+      "icon": "FileSignature"
     }
   ]
 }

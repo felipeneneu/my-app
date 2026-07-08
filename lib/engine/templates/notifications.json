@@ -107,6 +107,78 @@
       "title": "Gold acabando",
       "message": "Você tem apenas {gold} gold. Complete quests do Hunter System para reabastecer.",
       "icon": "Coins"
+    },
+    {
+      "id": "lead-stale",
+      "trigger": "lead_stale_7_days",
+      "priority": "medium",
+      "type": "insight",
+      "title": "Lead sem contato",
+      "message": "O lead \"{leadName}\" está sem contato há {days} dias. Envie um follow-up hoje para não perder a oportunidade.",
+      "icon": "Mail"
+    },
+    {
+      "id": "pipeline-empty",
+      "trigger": "pipeline_empty_hot",
+      "priority": "medium",
+      "type": "warning",
+      "title": "Pipeline vazio",
+      "message": "Você não tem nenhum lead quente no pipeline. Reserve tempo hoje para prospecção ativa.",
+      "icon": "Radio"
+    },
+    {
+      "id": "deal-won",
+      "trigger": "lead_converted",
+      "priority": "low",
+      "type": "system",
+      "title": "Lead convertido 🎉",
+      "message": "O lead \"{leadName}\" foi convertido em cliente! Atualize o projeto e dê as boas-vindas.",
+      "icon": "Trophy"
+    },
+    {
+      "id": "pipeline-progress",
+      "trigger": "lead_advanced",
+      "priority": "low",
+      "type": "info",
+      "title": "Avanço no pipeline",
+      "message": "O lead \"{leadName}\" avançou de {fromStage} para {toStage}. Continue o bom trabalho!",
+      "icon": "ArrowUpRight"
+    },
+    {
+      "id": "inactive-clients",
+      "trigger": "client_no_project_30_days",
+      "priority": "low",
+      "type": "suggestion",
+      "title": "Cliente inativo",
+      "message": "O cliente \"{clientName}\" não tem projetos novos há {days} dias. Que tal oferecer uma manutenção ou upgrade?",
+      "icon": "User"
+    },
+    {
+      "id": "daily-prospecting-goal",
+      "trigger": "prospecting_daily_goal",
+      "priority": "low",
+      "type": "suggestion",
+      "title": "Meta de prospecção",
+      "message": "Meta do dia: contatar {goal} leads. Você já fez {done} contatos hoje. {remaining} restantes.",
+      "icon": "Target"
+    },
+    {
+      "id": "budget-sent-no-response",
+      "trigger": "quotation_pending_7_days",
+      "priority": "medium",
+      "type": "warning",
+      "title": "Orçamento sem retorno",
+      "message": "O orçamento enviado para \"{leadName}\" está sem retorno há {days} dias. Envie um follow-up.",
+      "icon": "FileSignature"
+    },
+    {
+      "id": "os-pending-approval",
+      "trigger": "os_pending_approval",
+      "priority": "medium",
+      "type": "info",
+      "title": "OS aguardando aprovação",
+      "message": "A Ordem de Serviço do projeto \"{projectName}\" está pendente de aprovação do cliente há {days} dias.",
+      "icon": "ClipboardList"
     }
   ]
 }
