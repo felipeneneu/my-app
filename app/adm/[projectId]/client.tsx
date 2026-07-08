@@ -7,33 +7,43 @@ import {
   ArrowLeft, CheckCircle2, Circle, Plus, Smile, Meh, Frown, Trash2,
   Wallet, TrendingUp, Target, FileText, ClipboardList, Receipt, Copy, Download,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toggleMilestoneStatus, addProjectExpense, deleteProjectExpense } from "@/lib/actions/project-detail";
+import { applyTemplateToProject, addProjectChecklistItem, toggleProjectChecklistItem, deleteProjectChecklistItem } from "@/lib/actions/checklists";
 
 type MilestoneData = { id: string; label: string; status: string };
 type ExpenseData = { id: string; label: string; amount: number; category: string };
 type ProjectData = { id: string; name: string; clientName: string; price: number; status: string; startDate: string };
+type ChecklistItemData = { id: string; label: string; completed: boolean };
+type ChecklistTemplateData = { id: string; name: string };
 type DocTab = "briefing" | "os" | "recibos";
 
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function ProjectDetailClient({ project, milestones: initialMilestones, expenses: initialExpenses }: {
+export function ProjectDetailClient({ project, milestones: initialMilestones, expenses: initialExpenses, checklistTemplates, checklistItems: initialChecklistItems }: {
   project: ProjectData;
   milestones: MilestoneData[];
   expenses: ExpenseData[];
+  checklistTemplates: ChecklistTemplateData[];
+  checklistItems: ChecklistItemData[];
 }) {
   const [milestones, setMilestones] = useState<MilestoneData[]>(initialMilestones.length > 0 ? initialMilestones : [
     { id: "m1", label: "Kickoff e escopo", status: "done" },
     { id: "m2", label: "Design inicial", status: "pending" },
   ]);
   const [expenses, setExpenses] = useState<ExpenseData[]>(initialExpenses);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItemData[]>(initialChecklistItems);
   const [newLabel, setNewLabel] = useState("");
   const [newAmount, setNewAmount] = useState<number | "">("");
+  const [newChecklistLabel, setNewChecklistLabel] = useState("");
 
   const budget = project.price;
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
@@ -79,6 +89,32 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
     setExpenses((xs) => xs.filter((x) => x.id !== id));
   }
 
+  async function handleApplyTemplate(templateId: string) {
+    await applyTemplateToProject(templateId, project.id);
+    const { getProjectChecklistItems } = await import("@/lib/actions/checklists");
+    const items = await getProjectChecklistItems(project.id);
+    setChecklistItems(items.map((i: any) => ({ id: i.id, label: i.label, completed: i.completed })));
+    toast.success("Template aplicado ao projeto");
+  }
+
+  async function handleAddChecklistItem() {
+    if (!newChecklistLabel.trim()) return;
+    await addProjectChecklistItem(project.id, newChecklistLabel.trim());
+    setChecklistItems((prev) => [...prev, { id: crypto.randomUUID(), label: newChecklistLabel.trim(), completed: false }]);
+    setNewChecklistLabel("");
+    toast.success("Item adicionado");
+  }
+
+  async function handleToggleChecklistItem(id: string) {
+    await toggleProjectChecklistItem(id);
+    setChecklistItems((prev) => prev.map((i) => i.id === id ? { ...i, completed: !i.completed } : i));
+  }
+
+  async function handleDeleteChecklistItem(id: string) {
+    await deleteProjectChecklistItem(id);
+    setChecklistItems((prev) => prev.filter((i) => i.id !== id));
+  }
+
   return (
     <>
       <header className="flex items-center justify-between border-b border-hairline px-8 py-4">
@@ -92,14 +128,14 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
       </header>
 
       <section className="grid grid-cols-1 gap-4 px-8 pt-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-6">
+        <div className="lg:col-span-2 rounded-2xl border border-hairline bg-(--surface-1) p-6">
           <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Projeto ativo · {project.status.toUpperCase()}</p>
           <h1 className="text-display mt-1 text-4xl text-foreground">{project.name}</h1>
           <p className="mt-2 text-sm text-muted-foreground">Acompanhamento de progresso, entregas e saúde financeira em tempo real.</p>
           <div className="mt-6 flex items-center gap-4">
             <div className="relative flex h-24 w-24 items-center justify-center">
               <svg viewBox="0 0 100 100" className="h-24 w-24 -rotate-90">
-                <circle cx="50" cy="50" r="42" strokeWidth="8" fill="none" className="stroke-[color:var(--surface-2)]" />
+                <circle cx="50" cy="50" r="42" strokeWidth="8" fill="none" className="stroke-(--surface-2)" />
                 <circle cx="50" cy="50" r="42" strokeWidth="8" fill="none" strokeLinecap="round" strokeDasharray={264} strokeDashoffset={264 - (264 * progress) / 100} className="stroke-emerald-glow drop-shadow-[0_0_10px_rgba(0,255,180,0.6)] transition-all" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center"><span className="text-display text-xl text-foreground">{Math.round(progress)}%</span></div>
@@ -107,8 +143,8 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
             <div className="flex-1">
               <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Progresso das entregas</p>
               <p className="mt-1 text-sm text-foreground">{doneCount} de {milestones.length} marcos concluídos</p>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[color:var(--surface-2)]">
-                <div className="h-full rounded-full bg-gradient-to-r from-emerald-glow to-violet-glow" style={{ width: `${progress}%` }} />
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-(--surface-2)">
+                <div className="h-full rounded-full bg-linear-to-r from-emerald-glow to-violet-glow" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
@@ -117,7 +153,7 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
         <div className={`rounded-2xl border p-6 ${toneRing}`}>
           <p className="text-mono text-[10px] uppercase tracking-widest">Moral do cliente</p>
           <div className="mt-4 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-current bg-[color:var(--surface-0)]"><morale.icon size={26} /></div>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-current bg-(--surface-0)"><morale.icon size={26} /></div>
             <div>
               <p className="text-display text-2xl">{morale.label}</p>
               <p className="text-xs opacity-80">{morale.note}</p>
@@ -163,7 +199,58 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
         </Card>
       </section>
 
-      <section className="px-8 py-8">
+      <section className="px-8 pt-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Checklist do projeto</p>
+                <CardTitle className="text-display text-xl">Itens de entrega</CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                {checklistTemplates.map((t) => (
+                  <Button key={t.id} variant="outline" size="sm" onClick={() => handleApplyTemplate(t.id)}>
+                    <ClipboardList size={12} /> {t.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-3 flex items-center gap-2">
+              <Input
+                value={newChecklistLabel}
+                onChange={(e) => setNewChecklistLabel(e.target.value)}
+                placeholder="Adicionar item…"
+                className="flex-1 text-sm"
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddChecklistItem())}
+              />
+              <Button size="sm" onClick={handleAddChecklistItem}><Plus size={12} /> Adicionar</Button>
+            </div>
+            <div className="flex flex-col divide-y divide-hairline">
+              {checklistItems.length === 0 && (
+                <p className="py-4 text-center text-xs text-muted-foreground">Nenhum item. Adicione manualmente ou aplique um template.</p>
+              )}
+              {checklistItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 py-2.5">
+                  <Checkbox
+                    checked={item.completed}
+                    onCheckedChange={() => handleToggleChecklistItem(item.id)}
+                  />
+                  <p className={`flex-1 text-sm ${item.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                    {item.label}
+                  </p>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteChecklistItem(item.id)}>
+                    <Trash2 size={14} className="text-muted-foreground hover:text-rose-glow" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="px-8 pt-8">
         <Card>
           <CardHeader>
             <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
@@ -179,29 +266,36 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-[color:var(--surface-2)] px-3 py-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-(--surface-2) px-3 py-2">
               <Wallet size={14} className="text-muted-foreground" />
               <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Descrição" className="flex-1 bg-transparent text-sm border-none" />
               <Input type="number" value={newAmount} onChange={(e) => setNewAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="R$" className="w-24 bg-transparent text-right text-mono text-sm border-none" />
               <Button size="sm" onClick={handleAddExpense}><Plus size={12} /> Registrar</Button>
             </div>
             <div className="overflow-hidden rounded-xl border border-hairline">
-              <table className="w-full text-sm">
-                <thead className="bg-[color:var(--surface-2)] text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  <tr><th className="px-4 py-2 text-left">Descrição</th><th className="px-4 py-2 text-left">Categoria</th><th className="px-4 py-2 text-right">Valor</th><th className="px-4 py-2" /></tr>
-                </thead>
-                <tbody>
-                  {expenses.length === 0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-xs text-muted-foreground">Nenhum custo lançado.</td></tr>)}
+              <Table>
+                <TableHeader className="bg-(--surface-2)">
+                  <TableRow>
+                    <TableHead className="text-mono text-[10px] uppercase tracking-widest">Descrição</TableHead>
+                    <TableHead className="text-mono text-[10px] uppercase tracking-widest">Categoria</TableHead>
+                    <TableHead className="text-mono text-[10px] uppercase tracking-widest text-right">Valor</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {expenses.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-6">Nenhum custo lançado.</TableCell></TableRow>
+                  )}
                   {expenses.map((e) => (
-                    <tr key={e.id} className="border-t border-hairline">
-                      <td className="px-4 py-2 text-foreground">{e.label}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{e.category}</td>
-                      <td className="px-4 py-2 text-right text-mono text-rose-glow">-{formatBRL(e.amount)}</td>
-                      <td className="px-4 py-2 text-right"><Button variant="ghost" size="icon" onClick={() => handleDeleteExpense(e.id)} title="Remover"><Trash2 size={14} /></Button></td>
-                    </tr>
+                    <TableRow key={e.id}>
+                      <TableCell className="text-foreground">{e.label}</TableCell>
+                      <TableCell className="text-muted-foreground">{e.category}</TableCell>
+                      <TableCell className="text-right text-mono text-rose-glow">-{formatBRL(e.amount)}</TableCell>
+                      <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleDeleteExpense(e.id)} title="Remover"><Trash2 size={14} /></Button></TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
             <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-glow/30 bg-emerald-glow/5 px-4 py-3">
               <div className="flex items-center gap-2 text-emerald-glow"><TrendingUp size={16} /><p className="text-sm font-semibold">Lucro líquido projetado</p></div>
@@ -254,12 +348,12 @@ function ProjectDocumentsSection({ projectName, budget }: { projectName: string;
               <p className="text-mono text-[10px] uppercase tracking-widest text-cyan-glow">Documentos do projeto</p>
               <CardTitle className="text-display text-xl">Central de contratos e recibos</CardTitle>
             </div>
-            <div className="flex gap-1 rounded-xl border border-hairline bg-[color:var(--surface-2)] p-1">
+            <div className="flex gap-1 rounded-xl border border-hairline bg-(--surface-2) p-1">
               {tabs.map((t) => {
                 const Icon = t.icon;
                 const active = tab === t.id;
                 return (
-                  <button key={t.id} onClick={() => setTab(t.id)} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${active ? `bg-[color:var(--surface-0)] ${t.tone}` : "text-muted-foreground hover:text-foreground"}`}>
+                  <button key={t.id} onClick={() => setTab(t.id)} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${active ? `bg-(--surface-0) ${t.tone}` : "text-muted-foreground hover:text-foreground"}`}>
                     <Icon size={12} /> {t.label}
                   </button>
                 );
@@ -269,16 +363,16 @@ function ProjectDocumentsSection({ projectName, budget }: { projectName: string;
         </CardHeader>
         <CardContent>
           <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cliente</span><input value={clientName} onChange={(e) => setClientName(e.target.value)} className="rounded-md border border-hairline bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-            <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Documento</span><input value={clientDoc} onChange={(e) => setClientDoc(e.target.value)} className="rounded-md border border-hairline bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
+            <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cliente</span><input value={clientName} onChange={(e) => setClientName(e.target.value)} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
+            <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Documento</span><input value={clientDoc} onChange={(e) => setClientDoc(e.target.value)} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
           </div>
 
           {tab === "briefing" && (
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <div className="flex flex-col gap-3">
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Objetivo de negócio</span><textarea value={briefingGoal} onChange={(e) => setBriefingGoal(e.target.value)} rows={3} className="rounded-md border border-hairline bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo</span><textarea value={briefingScope} onChange={(e) => setBriefingScope(e.target.value)} rows={3} className="rounded-md border border-hairline bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Prazo</span><input value={briefingDeadline} onChange={(e) => setBriefingDeadline(e.target.value)} className="rounded-md border border-hairline bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
+                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Objetivo de negócio</span><textarea value={briefingGoal} onChange={(e) => setBriefingGoal(e.target.value)} rows={3} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
+                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo</span><textarea value={briefingScope} onChange={(e) => setBriefingScope(e.target.value)} rows={3} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
+                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Prazo</span><input value={briefingDeadline} onChange={(e) => setBriefingDeadline(e.target.value)} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
               </div>
               <DocPreview text={briefingText} onCopy={() => copy(briefingText, "Briefing")} onDownload={() => download(briefingText, `briefing-${projectName}.txt`)} tone="cyan" />
             </div>
@@ -287,8 +381,8 @@ function ProjectDocumentsSection({ projectName, budget }: { projectName: string;
           {tab === "os" && (
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <div className="flex flex-col gap-3">
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo executivo da OS</span><textarea value={osScope} onChange={(e) => setOsScope(e.target.value)} rows={6} className="rounded-md border border-hairline bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none focus:border-violet-glow" /></label>
-                <div className="rounded-md border border-hairline bg-[color:var(--surface-2)] px-3 py-2 text-xs text-muted-foreground">Valor total: R$ {(half * 2).toLocaleString("pt-BR")} · Parcelas 50/50 de R$ {half.toLocaleString("pt-BR")}</div>
+                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo executivo da OS</span><textarea value={osScope} onChange={(e) => setOsScope(e.target.value)} rows={6} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-violet-glow" /></label>
+                <div className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-xs text-muted-foreground">Valor total: R$ {(half * 2).toLocaleString("pt-BR")} · Parcelas 50/50 de R$ {half.toLocaleString("pt-BR")}</div>
               </div>
               <DocPreview text={osText} onCopy={() => copy(osText, "Ordem de Serviço")} onDownload={() => download(osText, `os-${projectName}.txt`)} tone="violet" />
             </div>
@@ -309,7 +403,7 @@ function ProjectDocumentsSection({ projectName, budget }: { projectName: string;
 function DocPreview({ text, onCopy, onDownload, tone, title }: { text: string; onCopy: () => void; onDownload: () => void; tone: "cyan" | "violet" | "emerald"; title?: string }) {
   const toneClass = tone === "cyan" ? "border-cyan-glow/30 text-cyan-glow" : tone === "violet" ? "border-violet-glow/30 text-violet-glow" : "border-emerald-glow/30 text-emerald-glow";
   return (
-    <div className={`flex flex-col rounded-xl border bg-[color:var(--surface-0)] ${toneClass}`}>
+    <div className={`flex flex-col rounded-xl border bg-(--surface-0) ${toneClass}`}>
       <div className="flex items-center justify-between border-b border-hairline px-4 py-2">
         <p className="text-mono text-[10px] uppercase tracking-widest">{title ?? "Preview do documento"}</p>
         <div className="flex gap-1">
@@ -317,7 +411,7 @@ function DocPreview({ text, onCopy, onDownload, tone, title }: { text: string; o
           <Button variant="outline" size="sm" onClick={onDownload}><Download size={11} /> .txt</Button>
         </div>
       </div>
-      <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap px-4 py-3 text-mono text-[12px] leading-relaxed text-foreground/90">{text}</pre>
+      <pre className="max-h-105 overflow-auto whitespace-pre-wrap px-4 py-3 text-mono text-[12px] leading-relaxed text-foreground/90">{text}</pre>
     </div>
   );
 }

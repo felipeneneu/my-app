@@ -15,12 +15,19 @@ import {
   Wallet,
   Plus,
   FolderOpen,
+  Trash2,
+  Users,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { EditWorkspaceSheet } from "@/components/EditWorkspaceSheet";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { deleteProject } from "@/lib/actions/projects";
+import { Kbd } from "@/components/ui/kbd";
+import { toast } from "sonner";
 
 type Project = {
   id: string;
@@ -39,11 +46,13 @@ type WorkspaceConfig = {
 
 const railItems = [
   { icon: LayoutDashboard, label: "Painel", href: "/adm" },
-  { icon: Swords, label: "Sistema Hunter", href: "/adm/hunter-system" },
+  { icon: Users, label: "Clientes", href: "/adm/clients" },
+  { icon: Swords, label: "Hunter", href: "/adm/hunter-system" },
   { icon: FileSignature, label: "Orçamentos", href: "/adm/quotations" },
   { icon: Dumbbell, label: "Evolução", href: "/adm/growth" },
   { icon: Wallet, label: "Financeiro", href: "/adm/financial" },
   { icon: CalendarSync, label: "Agenda", href: "/adm" },
+  { icon: ClipboardList, label: "Checklists", href: "/adm/checklist-templates" },
   { icon: FolderOpen, label: "Perfil", href: "/adm/profile" },
   { icon: Settings, label: "Config", href: "/adm" },
 ];
@@ -61,10 +70,10 @@ function IconRail({ config }: { config: WorkspaceConfig }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-[68px] shrink-0 flex-col items-center gap-2 border-r border-hairline bg-[color:var(--surface-0)] py-4">
+    <aside className="flex w-[68px] shrink-0 flex-col items-center gap-2 border-r border-hairline bg-(--surface-0) py-4">
       <Link
         href="/adm"
-        className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-glow to-violet-glow text-[color:var(--surface-0)] font-black"
+        className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-glow to-violet-glow text-(--surface-0) font-black"
       >
         {config.workspaceName.charAt(0)}
       </Link>
@@ -80,8 +89,8 @@ function IconRail({ config }: { config: WorkspaceConfig }) {
             className={[
               "group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all",
               active
-                ? "bg-[color:var(--surface-2)] text-foreground"
-                : "text-muted-foreground hover:bg-[color:var(--surface-2)] hover:text-foreground hover:rounded-xl",
+                ? "bg-(--surface-2) text-foreground"
+                : "text-muted-foreground hover:bg-(--surface-2) hover:text-foreground hover:rounded-xl",
             ].join(" ")}
           >
             {active && <span className="absolute -left-4 h-8 w-1 rounded-r-full bg-emerald-glow" />}
@@ -89,7 +98,7 @@ function IconRail({ config }: { config: WorkspaceConfig }) {
           </Link>
         );
       })}
-      <div className="mt-auto flex h-11 w-11 items-center justify-center rounded-full bg-[color:var(--surface-2)] text-xs font-semibold">
+      <div className="mt-auto flex h-11 w-11 items-center justify-center rounded-full bg-(--surface-2) text-xs font-semibold">
         {config.userInitials}
       </div>
     </aside>
@@ -139,7 +148,7 @@ function ProjectSidebar({
         <ChevronDown size={16} className="text-muted-foreground" />
       </div>
 
-      <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg bg-[color:var(--surface-2)] px-3 py-2 text-sm">
+      <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg bg-(--surface-2) px-3 py-2 text-sm">
         <Search size={14} className="text-muted-foreground shrink-0" />
         <input
           value={searchQuery}
@@ -147,7 +156,7 @@ function ProjectSidebar({
           placeholder="Buscar projetos, clientes…"
           className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
         />
-        <kbd className="ml-auto text-mono text-[10px] text-muted-foreground/70">⌘K</kbd>
+        <Kbd className="ml-auto">⌘K</Kbd>
       </div>
 
       <div className="px-4 pb-2 pt-1">
@@ -187,7 +196,7 @@ function ProjectSidebar({
                 ? "Nenhum projeto encontrado para esta busca"
                 : "Nenhum projeto ainda"}
             </p>
-            <button onClick={() => router.push("/adm?newProject=1")} className="inline-flex items-center gap-1 rounded-md bg-emerald-glow px-3 py-1.5 text-[11px] font-semibold text-[color:var(--surface-0)] hover:brightness-110">
+            <button onClick={() => router.push("/adm?newProject=1")} className="inline-flex items-center gap-1 rounded-md bg-emerald-glow px-3 py-1.5 text-[11px] font-semibold text-(--surface-0) hover:brightness-110">
               <Plus size={12} /> Criar primeiro projeto
             </button>
           </div>
@@ -202,30 +211,43 @@ function ProjectSidebar({
                   ? "bg-violet-glow"
                   : "bg-muted-foreground/50";
             return (
-              <Link
-                key={p.id}
-                href={href}
-                className={[
-                  "group flex items-center gap-2 rounded-md px-2 py-1.5 text-left",
-                  active ? "bg-[color:var(--surface-2)]" : "hover:bg-[color:var(--surface-2)]",
-                ].join(" ")}
-              >
-                <Hash size={14} className="text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm text-foreground">{p.name}</p>
-                  {p.clientName && (
-                    <p className="truncate text-[11px] text-muted-foreground">{p.clientName}</p>
-                  )}
-                </div>
-                <span className={`h-2 w-2 rounded-full shrink-0 ${dot}`} />
-              </Link>
+              <div key={p.id} className={["group flex items-center gap-2 rounded-md px-2 py-1.5", active ? "bg-(--surface-2)" : "hover:bg-(--surface-2)"].join(" ")}>
+                <Link href={href} className="flex flex-1 items-center gap-2 min-w-0">
+                  <Hash size={14} className="text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm text-foreground">{p.name}</p>
+                    {p.clientName && (
+                      <p className="truncate text-[11px] text-muted-foreground">{p.clientName}</p>
+                    )}
+                  </div>
+                  <span className={`h-2 w-2 rounded-full shrink-0 ${dot}`} />
+                </Link>
+                <ConfirmDialog
+                  title="Deletar projeto"
+                  description={`Remover "${p.name}" permanentemente? Esta ação não pode ser desfeita.`}
+                  confirmLabel="Deletar"
+                  onConfirm={async () => {
+                    await deleteProject(p.id);
+                    router.refresh();
+                    toast.success("Projeto removido");
+                  }}
+                >
+                  <button
+                    onClick={(e) => e.preventDefault()}
+                    className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-rose-glow transition-opacity"
+                    title="Deletar projeto"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </ConfirmDialog>
+              </div>
             );
           })
         )}
       </nav>
 
       <div className="mt-auto flex items-center gap-2 border-t border-hairline px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-glow to-violet-glow text-xs font-bold text-[color:var(--surface-0)]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-emerald-glow to-violet-glow text-xs font-bold text-(--surface-0)">
           {config.userInitials}
         </div>
         <div className="flex-1 leading-tight min-w-0">
@@ -250,7 +272,7 @@ export function AppShell({
   const [workspaceEditOpen, setWorkspaceEditOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-full bg-[color:var(--surface-0)] text-foreground">
+    <div className="flex h-screen w-full bg-(--surface-0) text-foreground">
       <IconRail config={config} />
       <div className="hidden md:block">
         <ProjectSidebar projects={projects} config={config} onEditWorkspace={() => setWorkspaceEditOpen(true)} />

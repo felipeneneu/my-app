@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   CalendarSync,
   Zap,
@@ -26,6 +27,8 @@ import { getTasks } from "@/lib/actions/tasks";
 import { useNotificationStream } from "@/hooks/use-notification-stream";
 import { CreateTaskSheet } from "@/components/CreateTaskSheet";
 import { CreateProjectSheet } from "@/components/CreateProjectSheet";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 type Day = {
@@ -103,7 +106,7 @@ function MetricCard({ icon: Icon, label, value, sub, tone, children }: {
   const toneRing = tone === "emerald" ? "text-emerald-glow" : tone === "violet" ? "text-violet-glow" : "text-amber-glow";
   const bg = tone === "emerald" ? "bg-emerald-glow/10" : tone === "violet" ? "bg-violet-glow/10" : "bg-amber-glow/10";
   return (
-    <div className="relative flex-1 overflow-hidden rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-5">
+    <div className="relative flex-1 overflow-hidden rounded-2xl border border-hairline bg-(--surface-1) p-5">
       <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full opacity-30 blur-3xl"
         style={{ background: tone === "emerald" ? "var(--emerald-glow)" : tone === "violet" ? "var(--violet-glow)" : "var(--amber-glow)" }} />
       <div className="mb-4 flex items-center justify-between">
@@ -129,7 +132,7 @@ function DayCard({ d, onAddTask }: { d: Day; onAddTask?: (date: string) => void 
 
   if (d.type === "empty") {
     return (
-      <div className={`${base} border-dashed border-hairline bg-[color:var(--surface-1)] opacity-60 hover:opacity-100 hover:border-emerald-glow/40`}>
+      <div className={`${base} border-dashed border-hairline bg-(--surface-1) opacity-60 hover:opacity-100 hover:border-emerald-glow/40`}>
         <p className="text-mono text-[10px] tracking-widest text-muted-foreground">{d.name}</p>
         <p className="text-display text-3xl text-muted-foreground">{String(d.num).padStart(2, "0")}</p>
         <div className="mt-auto flex flex-col items-center gap-2">
@@ -146,15 +149,15 @@ function DayCard({ d, onAddTask }: { d: Day; onAddTask?: (date: string) => void 
   const styles = {
     prod: "border-emerald-glow/30 bg-emerald-glow/10 hover:glow-emerald",
     meet: "border-violet-glow/30 bg-violet-glow/10 hover:glow-violet",
-    deadline: "border-amber-glow/40 bg-gradient-to-br from-amber-glow/15 to-rose-glow/10 hover:glow-amber",
-    past: "border-hairline bg-[color:var(--surface-1)] opacity-60",
+    deadline: "border-amber-glow/40 bg-linear-to-br from-amber-glow/15 to-rose-glow/10 hover:glow-amber",
+    past: "border-hairline bg-(--surface-1) opacity-60",
   }[d.type];
 
   const nameColor = d.type === "prod" ? "text-emerald-glow" : d.type === "meet" ? "text-violet-glow" : d.type === "deadline" ? "text-amber-glow" : "text-muted-foreground";
 
   return (
     <div className={`${base} ${styles}`}>
-      {d.today && <span className="absolute right-2 top-2 rounded-md bg-foreground px-1.5 py-0.5 text-[9px] font-bold text-[color:var(--surface-0)]">HOJE</span>}
+      {d.today && <span className="absolute right-2 top-2 rounded-md bg-foreground px-1.5 py-0.5 text-[9px] font-bold text-(--surface-0)">HOJE</span>}
       <p className={`text-mono text-[10px] tracking-widest ${nameColor}`}>{d.name}</p>
       <p className="text-display text-3xl text-foreground">{String(d.num).padStart(2, "0")}</p>
       <div className="mt-auto">
@@ -200,7 +203,7 @@ function AutomationPanel() {
   })();
 
   return (
-    <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-hairline bg-[color:var(--surface-1)]">
+    <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-hairline bg-(--surface-1)">
       <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
         <div>
           <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Regras da agenda</p>
@@ -216,16 +219,13 @@ function AutomationPanel() {
           const toneText = m.tone === "emerald" ? "text-emerald-glow" : m.tone === "violet" ? "text-violet-glow" : "text-amber-glow";
           const toneBg = m.tone === "emerald" ? "bg-emerald-glow" : m.tone === "violet" ? "bg-violet-glow" : "bg-amber-glow";
           return (
-            <div key={m.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-[color:var(--surface-2)] px-3 py-2.5">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-[color:var(--surface-0)] ${toneText}`}><m.icon size={16} /></div>
+            <div key={m.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-(--surface-2) px-3 py-2.5">
+              <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-(--surface-0) ${toneText}`}><m.icon size={16} /></div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">{m.label}</p>
                 <p className="text-mono text-[10px] text-muted-foreground">{m.hours}</p>
               </div>
-              <button onClick={() => setActive((a) => ({ ...a, [m.id]: !a[m.id] }))}
-                className={`relative h-6 w-11 rounded-full border border-hairline transition-colors ${on ? toneBg : "bg-[color:var(--surface-0)]"}`}>
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
-              </button>
+              <Switch checked={on} onCheckedChange={() => setActive((a) => ({ ...a, [m.id]: !a[m.id] }))} className={on ? toneBg : ""} />
             </div>
           );
         })}
@@ -263,46 +263,35 @@ function AutomationPanel() {
   );
 }
 
-export function DashboardClient() {
+export function DashboardClient({ autoOpenProject = false }: { autoOpenProject?: boolean }) {
   const [taskSheetOpen, setTaskSheetOpen] = useState(false);
-  const [projectSheetOpen, setProjectSheetOpen] = useState(false);
+  const [projectSheetOpen, setProjectSheetOpen] = useState(autoOpenProject);
   const [selectedDate, setSelectedDate] = useState<string | undefined>();
-  const [allProjects, setAllProjects] = useState<Project[]>([]);
-  const [tasks, setTasks] = useState<{ dueDate: string; title: string; blockType: string; projectName?: string }[]>([]);
-  const [stats, setStats] = useState({ totalRevenue: 0, taskCompletion: 0, activeClients: 0 });
   const { unreadCount } = useNotificationStream();
 
-  useEffect(() => {
-    async function fetchData() {
-      const projects = await getProjects();
-      setAllProjects(projects.map((p: any) => ({ id: p.id, name: p.name, clientName: p.clientName, price: p.price, status: p.status })));
+  const { data: allProjectsData = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => getProjects(),
+  });
 
-      const tasksData = await getTasks();
-      setTasks(tasksData.map((t: any) => ({
-        dueDate: t.dueDate,
-        title: t.title,
-        blockType: t.blockType,
-        projectName: t.projectName,
-      })));
+  const { data: tasksData = [] } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: () => getTasks(),
+  });
 
-      const totalRevenue = projects.reduce((s: number, p: any) => s + (p.price || 0), 0);
-      const activeClients = projects.filter((p: any) => p.status === "active").length;
-      const completedTasks = tasksData.filter((t: any) => t.completed).length;
-      const totalTasks = tasksData.length;
-      setStats({
-        totalRevenue,
-        taskCompletion: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
-        activeClients,
-      });
-    }
-    fetchData();
+  const allProjects: Project[] = allProjectsData.map((p: any) => ({
+    id: p.id, name: p.name, clientName: p.clientName, price: p.price, status: p.status,
+  }));
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("newProject")) {
-      setProjectSheetOpen(true);
-      window.history.replaceState({}, "", "/adm");
-    }
-  }, []);
+  const tasks = tasksData.map((t: any) => ({
+    dueDate: t.dueDate, title: t.title, blockType: t.blockType, projectName: t.projectName,
+  }));
+
+  const totalRevenue = allProjects.reduce((s, p) => s + (p.price || 0), 0);
+  const activeClients = allProjects.filter((p) => p.status === "active").length;
+  const completedTasks = tasksData.filter((t: any) => t.completed).length;
+  const totalTasks = tasksData.length;
+  const taskCompletion = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const week = buildWeek(tasks);
   const today = new Date();
@@ -310,10 +299,13 @@ export function DashboardClient() {
   const dayNum = today.getDate();
   const weekday = today.toLocaleDateString("pt-BR", { weekday: "long" }).toUpperCase();
   const sprintWeek = getISOWeek(today);
+  const sprintNumber = Math.floor((sprintWeek - 1) / 2) + 1;
 
   function handleAddTask(date?: string) { setSelectedDate(date); setTaskSheetOpen(true); }
-  function handleProjectCreated(project: { id: string; name: string }) {
-    setAllProjects((prev) => [...prev, { ...project, status: "active" }]);
+  function handleProjectCreated(_project: { id: string; name: string }) {
+    if (autoOpenProject) {
+      window.history.replaceState({}, "", "/adm");
+    }
   }
 
   function exportWeek() {
@@ -345,20 +337,20 @@ export function DashboardClient() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={exportWeek} className="rounded-md border border-hairline px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">Exportar semana</button>
-          <button className="rounded-md bg-emerald-glow px-3 py-1.5 text-xs font-semibold text-[color:var(--surface-0)] hover:brightness-110">Iniciar sessão de foco</button>
+          <Button variant="outline" size="sm" onClick={exportWeek}>Exportar semana</Button>
+          <Button size="sm" className="bg-emerald-glow text-(--surface-0) hover:brightness-110">Iniciar sessão de foco</Button>
         </div>
       </header>
 
       <section className="grid grid-cols-12 gap-6 px-8 pt-8">
         <div className="col-span-12 flex items-start gap-6 xl:col-span-7">
-          <div className="flex flex-col items-center rounded-2xl border border-hairline bg-[color:var(--surface-1)] px-5 py-4">
+          <div className="flex flex-col items-center rounded-2xl border border-hairline bg-(--surface-1) px-5 py-4">
             <p className="text-mono text-[11px] tracking-widest text-emerald-glow">{month}</p>
             <p className="text-display text-6xl text-foreground">{dayNum}</p>
             <p className="text-mono text-[10px] text-muted-foreground">{weekday}</p>
           </div>
           <div className="pt-1">
-            <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Semana {sprintWeek} · Sprint 2</p>
+            <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Semana {sprintWeek} · Sprint {sprintNumber}</p>
             <h1 className="text-display mt-1 text-5xl text-foreground">Sprint Diário <span className="text-emerald-glow">Freelance</span></h1>
             <p className="mt-3 max-w-xl text-sm text-muted-foreground">
               Uma entrega concreta por dia. Reuniões concentradas em um único bloco. Foco profundo protegido. Prazos inegociáveis — a timeline abaixo é seu contrato com o você do futuro.
@@ -383,14 +375,14 @@ export function DashboardClient() {
 
       <section className="grid grid-cols-1 gap-4 px-8 pt-8 md:grid-cols-3">
         <MetricCard icon={Zap} label="Projetos Ativos" value={String(allProjects.length)} sub={allProjects.length === 0 ? "crie seu primeiro projeto" : "total em andamento"} tone="emerald">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-[color:var(--surface-2)]">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-glow to-emerald-glow/60" style={{ width: `${Math.min(100, allProjects.length * 20)}%` }} />
+          <div className="h-2 w-full overflow-hidden rounded-full bg-(--surface-2)">
+            <div className="h-full rounded-full bg-linear-to-r from-emerald-glow to-emerald-glow/60" style={{ width: `${Math.min(100, allProjects.length * 20)}%` }} />
           </div>
         </MetricCard>
         <MetricCard icon={Diamond} label="Tarefas da Semana" value={String(week.filter((d) => d.type !== "empty").length)} sub="blocos preenchidos" tone="violet">
           <div className="flex gap-1">
             {Array.from({ length: 9 }).map((_, i) => (
-              <span key={i} className={`h-6 flex-1 rounded-sm ${week[i] && week[i].type !== "empty" ? "bg-violet-glow" : "bg-[color:var(--surface-2)]"}`} />
+              <span key={i} className={`h-6 flex-1 rounded-sm ${week[i] && week[i].type !== "empty" ? "bg-violet-glow" : "bg-(--surface-2)"}`} />
             ))}
           </div>
         </MetricCard>
@@ -400,7 +392,7 @@ export function DashboardClient() {
               <p className="text-[10px] text-muted-foreground w-full text-center">Nenhum projeto cadastrado</p>
             ) : (
               allProjects.slice(0, 5).map((p, i) => (
-                <div key={p.id} className="flex flex-1 flex-col items-center gap-1 rounded-md border border-hairline bg-[color:var(--surface-2)] px-2 py-1.5">
+                <div key={p.id} className="flex flex-1 flex-col items-center gap-1 rounded-md border border-hairline bg-(--surface-2) px-2 py-1.5">
                   <span className={`h-1.5 w-full rounded-full ${i === 4 ? "bg-amber-glow" : "bg-emerald-glow"}`} />
                   <span className="text-[9px] text-muted-foreground truncate w-full text-center">{p.name}</span>
                 </div>
@@ -427,7 +419,7 @@ export function DashboardClient() {
             <DayCard key={`${d.name}-${d.num}-${i}`} d={d} onAddTask={handleAddTask} />
           ))}
         </div>
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-hairline bg-[color:var(--surface-1)] px-4 py-3 text-xs text-muted-foreground">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-hairline bg-(--surface-1) px-4 py-3 text-xs text-muted-foreground">
           <span className="text-mono uppercase tracking-widest">Timeline sincronizada com o Google Calendar · dados do banco local</span>
           <button className="text-emerald-glow hover:brightness-110">Reorganizar semana →</button>
         </div>

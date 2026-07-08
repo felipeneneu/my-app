@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -40,7 +40,7 @@ interface Props {
 }
 
 export function CreateTaskSheet({ open, onOpenChange, defaultDate, projects, onNewProject }: Props) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -60,9 +60,9 @@ export function CreateTaskSheet({ open, onOpenChange, defaultDate, projects, onN
     if (result.success) {
       reset();
       onOpenChange(false);
-      router.refresh();
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     }
-  }, [reset, onOpenChange, router]);
+  }, [reset, onOpenChange, queryClient]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

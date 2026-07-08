@@ -36,22 +36,22 @@ export function ProfileClient({ hunter }: { hunter: Hunter }) {
       </header>
 
       <section className="grid grid-cols-1 gap-4 px-8 py-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-6">
+        <div className="rounded-2xl border border-hairline bg-(--surface-1) p-6">
           <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Rank</p>
           <div className="mt-3 flex items-center gap-3">
             <ShieldCheck size={24} className="text-violet-glow" />
             <p className="text-display text-4xl text-violet-glow">{hunter.hunterRank}</p>
           </div>
         </div>
-        <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-6">
+        <div className="rounded-2xl border border-hairline bg-(--surface-1) p-6">
           <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Nível</p>
           <p className="text-display text-4xl text-emerald-glow">{hunter.level}</p>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[color:var(--surface-2)]">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-glow to-violet-glow" style={{ width: `${(hunter.currentXp / hunter.maxXp) * 100}%` }} />
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-(--surface-2)">
+            <div className="h-full rounded-full bg-linear-to-r from-emerald-glow to-violet-glow" style={{ width: `${(hunter.currentXp / hunter.maxXp) * 100}%` }} />
           </div>
           <p className="mt-1 text-mono text-[11px] text-muted-foreground">{hunter.currentXp} / {hunter.maxXp} XP</p>
         </div>
-        <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-6">
+        <div className="rounded-2xl border border-hairline bg-(--surface-1) p-6">
           <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Gold</p>
           <div className="mt-3 flex items-center gap-3">
             <Coins size={24} className="text-amber-glow" />
@@ -62,7 +62,7 @@ export function ProfileClient({ hunter }: { hunter: Hunter }) {
 
       <section className="grid grid-cols-3 gap-4 px-8 py-4">
         {attrs.map((attr) => (
-          <div key={attr.key} className={`rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-6 ${attr.tone}`}>
+          <div key={attr.key} className={`rounded-2xl border border-hairline bg-(--surface-1) p-6 ${attr.tone}`}>
             <div className="flex items-center gap-3">
               <attr.icon size={20} />
               <div>

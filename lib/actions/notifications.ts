@@ -29,6 +29,11 @@ export async function dismissNotificationAction(id: string) {
   revalidatePath("/adm");
 }
 
+export async function clearAllReadAction() {
+  await db.delete(notifications).where(eq(notifications.read, true));
+  revalidatePath("/adm");
+}
+
 export async function emitNotification(
   type: "info" | "warning" | "deadline" | "insight" | "suggestion" | "system",
   title: string,

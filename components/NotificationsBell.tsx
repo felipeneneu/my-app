@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { markAsReadAction, markAllAsReadAction, dismissNotificationAction } from "@/lib/actions/notifications";
+import { markAsReadAction, markAllAsReadAction, dismissNotificationAction, clearAllReadAction } from "@/lib/actions/notifications";
 
 const iconMap: Record<string, typeof Sparkles> = {
   Sparkles, AlertTriangle, Timer, Info, Swords, Coins, Bell,
@@ -43,10 +43,10 @@ export function NotificationsBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger >
-        <Button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-hairline bg-[color:var(--surface-1)] hover:bg-[color:var(--surface-2)] transition-colors">
+        <Button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-hairline bg-(--surface-1) hover:bg-(--surface-2) transition-colors">
           <Bell size={16} className="text-muted-foreground" />
           {unreadCount > 0 && (
-            <Badge className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-glow px-1 text-[9px] font-bold text-[color:var(--surface-0)]">
+            <Badge className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-glow px-1 text-[9px] font-bold text-(--surface-0)">
               {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
@@ -60,19 +60,24 @@ export function NotificationsBell() {
           <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Notificações {unreadCount > 0 && <span className="text-rose-glow">· {unreadCount} nova(s)</span>}
           </p>
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-1">
+            {unreadCount > 0 && (
+              <Button
+                onClick={async () => { await markAllAsReadAction(); setOpen(false); }}
+                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+              >
+                <CheckCheck size={12} /> Ler todas
+              </Button>
+            )}
             <Button
-              onClick={async () => {
-                await markAllAsReadAction();
-                setOpen(false);
-              }}
-              className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+              onClick={async () => { await clearAllReadAction(); setOpen(false); }}
+              className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-rose-glow"
             >
-              <CheckCheck size={12} /> Ler todas
+              <Trash2 size={12} /> Limpar lidas
             </Button>
-          )}
+          </div>
         </div>
-        <ScrollArea className="max-h-[420px]">
+        <ScrollArea className="max-h-105">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <Bell size={20} className="text-muted-foreground/40" />
@@ -81,12 +86,12 @@ export function NotificationsBell() {
           ) : (
             <div className="flex flex-col">
               {notifications.map((n) => (
-                <div key={n.id} className="group flex gap-3 border-b border-hairline px-4 py-3 hover:bg-[color:var(--surface-2)] transition-colors">
+                <div key={n.id} className={["group flex gap-3 border-b border-hairline px-4 py-3 transition-colors", n.read ? "opacity-60" : "hover:bg-(--surface-2)"].join(" ")}>
                   <div className={`mt-0.5 ${toneMap[n.type] ?? "text-muted-foreground"}`}>
                     {getIcon(n.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{n.title}</p>
+                    <p className={["text-sm font-medium truncate", n.read ? "text-muted-foreground" : "text-foreground"].join(" ")}>{n.title}</p>
                     <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
                     <p className="mt-1 text-mono text-[9px] text-muted-foreground/60">
                       {new Date(n.createdAt).toLocaleString("pt-BR")}

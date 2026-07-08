@@ -56,10 +56,10 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[color:var(--surface-0)]">
+    <div className="flex min-h-screen items-center justify-center bg-(--surface-0)">
       <div className="w-full max-w-lg">
         {step === 0 && (
-          <div className="flex flex-col gap-6 rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-8">
+          <div className="flex flex-col gap-6 rounded-2xl border border-hairline bg-(--surface-1) p-8">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-glow/40 bg-emerald-glow/10 text-emerald-glow">
                 <Sparkles size={24} />
@@ -83,7 +83,7 @@ export default function OnboardingPage() {
                     className={`flex items-center gap-4 rounded-xl border p-4 text-left transition-all ${
                       active
                         ? "border-emerald-glow/40 bg-emerald-glow/10"
-                        : "border-hairline bg-[color:var(--surface-2)] hover:border-hairline/60"
+                        : "border-hairline bg-(--surface-2) hover:border-hairline/60"
                     }`}
                   >
                     <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${
@@ -101,7 +101,7 @@ export default function OnboardingPage() {
             </div>
             <button
               onClick={() => setStep(1)}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-glow px-4 py-3 text-sm font-bold text-[color:var(--surface-0)] hover:brightness-110"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-glow px-4 py-3 text-sm font-bold text-(--surface-0) hover:brightness-110"
             >
               Próximo: Distribuir Atributos →
             </button>
@@ -109,7 +109,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 1 && (
-          <div className="flex flex-col gap-6 rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-8">
+          <div className="flex flex-col gap-6 rounded-2xl border border-hairline bg-(--surface-1) p-8">
             <div>
               <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Atributos</p>
               <h2 className="text-display text-xl text-foreground">Distribua {TOTAL_POINTS} pontos</h2>
@@ -120,8 +120,8 @@ export default function OnboardingPage() {
               { key: "INT" as const, label: "Inteligência", icon: BrainCircuit, tone: "text-cyan-glow", desc: "Raciocínio lógico, aprendizado técnico" },
               { key: "WIS" as const, label: "Sabedoria", icon: BookOpen, tone: "text-emerald-glow", desc: "Gestão, negócios, visão estratégica" },
             ].map((attr) => (
-              <div key={attr.key} className="flex items-center gap-4 rounded-xl border border-hairline bg-[color:var(--surface-2)] p-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${attr.tone} bg-[color:var(--surface-0)]`}>
+              <div key={attr.key} className="flex items-center gap-4 rounded-xl border border-hairline bg-(--surface-2) p-4">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${attr.tone} bg-(--surface-0)`}>
                   <attr.icon size={18} className={attr.tone} />
                 </div>
                 <div className="flex-1">
@@ -137,18 +137,18 @@ export default function OnboardingPage() {
             ))}
             <div className="flex gap-3">
               <button onClick={() => setStep(0)} className="flex-1 rounded-xl border border-hairline px-4 py-3 text-sm text-muted-foreground hover:text-foreground">Voltar</button>
-              <button onClick={() => setStep(2)} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-glow px-4 py-3 text-sm font-bold text-[color:var(--surface-0)] hover:brightness-110">Revisar →</button>
+              <button onClick={() => setStep(2)} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-glow px-4 py-3 text-sm font-bold text-(--surface-0) hover:brightness-110">Revisar →</button>
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="flex flex-col gap-6 rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-8">
+          <div className="flex flex-col gap-6 rounded-2xl border border-hairline bg-(--surface-1) p-8">
             <div>
               <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Confirmação</p>
               <h2 className="text-display text-xl text-foreground">Ficha do Personagem</h2>
             </div>
-            <div className="flex items-center gap-4 rounded-xl border border-hairline bg-[color:var(--surface-2)] p-4">
+            <div className="flex items-center gap-4 rounded-xl border border-hairline bg-(--surface-2) p-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-glow/40 bg-emerald-glow/10 text-emerald-glow">
                 <Swords size={24} />
               </div>
@@ -165,7 +165,7 @@ export default function OnboardingPage() {
               ].map((attr) => {
                 const Icon = attr.icon;
                 return (
-                  <div key={attr.key} className={`flex flex-col items-center gap-2 rounded-xl border border-hairline bg-[color:var(--surface-2)] p-4 ${attr.tone}`}>
+                  <div key={attr.key} className={`flex flex-col items-center gap-2 rounded-xl border border-hairline bg-(--surface-2) p-4 ${attr.tone}`}>
                     <Icon size={18} />
                     <p className="text-mono text-[10px] uppercase">{attr.label}</p>
                     <p className="text-display text-2xl">{attr.value}</p>
@@ -175,7 +175,7 @@ export default function OnboardingPage() {
             </div>
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="flex-1 rounded-xl border border-hairline px-4 py-3 text-sm text-muted-foreground hover:text-foreground">Voltar</button>
-              <button onClick={handleCreate} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-glow px-4 py-3 text-sm font-bold text-[color:var(--surface-0)] hover:brightness-110 disabled:opacity-50">
+              <button onClick={handleCreate} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-glow px-4 py-3 text-sm font-bold text-(--surface-0) hover:brightness-110 disabled:opacity-50">
                 {loading ? "Criando…" : "Criar Personagem →"}
               </button>
             </div>

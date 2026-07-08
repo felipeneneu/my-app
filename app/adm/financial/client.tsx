@@ -124,8 +124,8 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
                 <p className={`text-display text-2xl ${goalProgress >= 100 ? "text-emerald-glow" : "text-amber-glow"}`}>{goalProgress >= 100 ? "✓ 100%" : formatBRL(remainingToGoal)}</p>
               </div>
             </div>
-            <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-[color:var(--surface-2)]">
-              <div className="h-full rounded-full bg-gradient-to-r from-emerald-glow via-cyan-glow to-violet-glow transition-all" style={{ width: `${goalProgress}%` }} />
+            <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-(--surface-2)">
+              <div className="h-full rounded-full bg-linear-to-r from-emerald-glow via-cyan-glow to-violet-glow transition-all" style={{ width: `${goalProgress}%` }} />
             </div>
             <p className="mt-2 text-mono text-[11px] text-muted-foreground">{goalProgress.toFixed(1)}% da meta atingido · lucro líquido / {formatBRL(monthlyGoal)}</p>
           </CardContent>
@@ -144,9 +144,9 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-[color:var(--surface-2)] px-3 py-2">
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-(--surface-2) px-3 py-2">
               <Input value={nfLabel} onChange={(e) => setNfLabel(e.target.value)} placeholder="Descrição" className="flex-1 bg-transparent text-sm" />
-              <select value={nfCat} onChange={(e) => setNfCat(e.target.value)} className="rounded-md border border-hairline bg-[color:var(--surface-1)] px-2 py-1 text-xs text-muted-foreground">
+              <select value={nfCat} onChange={(e) => setNfCat(e.target.value)} className="rounded-md border border-hairline bg-(--surface-1) px-2 py-1 text-xs text-muted-foreground">
                 {["Software", "Infra", "Espaço", "Serviços", "Outros"].map((c) => (<option key={c} value={c}>{c}</option>))}
               </select>
               <Input type="number" value={nfAmount} onChange={(e) => setNfAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="R$" className="w-24 bg-transparent text-right text-mono text-sm" />
@@ -176,8 +176,8 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-[color:var(--surface-2)] px-3 py-2">
-              <select value={npProject} onChange={(e) => setNpProject(e.target.value)} className="rounded-md border border-hairline bg-[color:var(--surface-1)] px-2 py-1 text-xs text-foreground">
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-hairline bg-(--surface-2) px-3 py-2">
+              <select value={npProject} onChange={(e) => setNpProject(e.target.value)} className="rounded-md border border-hairline bg-(--surface-1) px-2 py-1 text-xs text-foreground">
                 {projects.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
               </select>
               <Input value={npLabel} onChange={(e) => setNpLabel(e.target.value)} placeholder="Descrição do custo" className="flex-1 bg-transparent text-sm" />
@@ -217,7 +217,7 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
           <CardContent>
             <div className="overflow-hidden rounded-xl border border-hairline">
               <table className="w-full text-sm">
-                <thead className="bg-[color:var(--surface-2)] text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <thead className="bg-(--surface-2) text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   <tr><th className="px-4 py-2 text-left">Projeto</th><th className="px-4 py-2 text-right">Receita</th><th className="px-4 py-2 text-right">Custos</th><th className="px-4 py-2 text-right">Lucro</th><th className="px-4 py-2 text-right">Margem</th></tr>
                 </thead>
                 <tbody>
@@ -242,3 +242,4 @@ export function FinancialClient({ fixedCosts: initialFixed, projectCosts: initia
     </>
   );
 }
+

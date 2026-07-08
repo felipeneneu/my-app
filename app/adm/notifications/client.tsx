@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Bell, CheckCheck, Trash2, Timer, AlertTriangle, Sparkles, Swords, Info, Coins, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { markAsReadAction, markAllAsReadAction, dismissNotificationAction } from "@/lib/actions/notifications";
+import { markAsReadAction, markAllAsReadAction, dismissNotificationAction, clearAllReadAction } from "@/lib/actions/notifications";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -14,7 +14,7 @@ const toneMap: Record<string, string> = {
   insight: "border-violet-glow/30 bg-violet-glow/5 text-violet-glow",
   suggestion: "border-emerald-glow/30 bg-emerald-glow/5 text-emerald-glow",
   info: "border-cyan-glow/30 bg-cyan-glow/5 text-cyan-glow",
-  system: "border-hairline bg-[color:var(--surface-2)] text-muted-foreground",
+  system: "border-hairline bg-(--surface-2) text-muted-foreground",
 };
 
 type Notification = {
@@ -71,6 +71,9 @@ export function NotificationsClient({ initialNotifications }: { initialNotificat
               <CheckCheck size={12} /> Marcar todas como lidas
             </button>
           )}
+          <button onClick={async () => { await clearAllReadAction(); setNotifs((prev) => prev.filter((n) => !n.read)); }} className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[11px] text-muted-foreground hover:text-rose-glow">
+            <Trash2 size={12} /> Limpar lidas
+          </button>
           <Badge variant="outline" className="text-[10px]">
             {unread.length} não lida{unread.length !== 1 ? "s" : ""}
           </Badge>
@@ -96,11 +99,11 @@ export function NotificationsClient({ initialNotifications }: { initialNotificat
             ) : (
               <div className="flex flex-col gap-2">
                 {filtered.map((n) => (
-                  <div key={n.id} className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${toneMap[n.type] ?? "border-hairline bg-[color:var(--surface-1)]"}`}>
+                  <div key={n.id} className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${n.read ? "opacity-60" : ""} ${toneMap[n.type] ?? "border-hairline bg-(--surface-1)"}`}>
                     <div className="mt-0.5">{getIcon(n.type)}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{n.title}</p>
+                        <p className={`text-sm font-semibold ${n.read ? "text-muted-foreground" : "text-foreground"}`}>{n.title}</p>
                         {!n.read && <span className="h-2 w-2 rounded-full bg-emerald-glow shrink-0" />}
                         {n.priority === "high" && (
                           <Badge variant="destructive" className="text-[9px] px-1 py-0">ALTA</Badge>

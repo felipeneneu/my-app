@@ -121,7 +121,7 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
 
   return (
     <>
-      <header className="border-b border-hairline bg-[color:var(--surface-1)] px-8 py-6">
+      <header className="border-b border-hairline bg-(--surface-1) px-8 py-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-glow/40 bg-emerald-glow/10 text-emerald-glow glow-emerald">
@@ -134,14 +134,14 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 rounded-xl border border-hairline bg-[color:var(--surface-0)] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-hairline bg-(--surface-0) px-3 py-2">
               <ShieldCheck size={16} className="text-violet-glow" />
               <div className="leading-tight">
                 <p className="text-mono text-[10px] uppercase text-muted-foreground">Rank</p>
                 <p className="text-display text-lg text-violet-glow">{rank}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-xl border border-hairline bg-[color:var(--surface-0)] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-hairline bg-(--surface-0) px-3 py-2">
               <Coins size={16} className="text-amber-glow" />
               <div className="leading-tight">
                 <p className="text-mono text-[10px] uppercase text-muted-foreground">Gold</p>
@@ -155,9 +155,9 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
             <span className="text-emerald-glow">LVL {level}</span>
             <span className="text-muted-foreground">{xp} → LVL {level + 1}</span>
           </div>
-          <div className="relative h-3 w-full overflow-hidden rounded-full border border-hairline bg-[color:var(--surface-0)]">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-glow via-emerald-glow to-violet-glow shadow-[0_0_20px_rgba(0,255,180,0.4)] transition-all" style={{ width: `${(xp / maxXp) * 100}%` }} />
-            <div className="pointer-events-none absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+          <div className="relative h-3 w-full overflow-hidden rounded-full border border-hairline bg-(--surface-0)">
+            <div className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-emerald-glow via-emerald-glow to-violet-glow shadow-[0_0_20px_rgba(0,255,180,0.4)] transition-all" style={{ width: `${(xp / maxXp) * 100}%` }} />
+            <div className="pointer-events-none absolute inset-0 animate-pulse bg-linear-to-r from-transparent via-white/5 to-transparent" />
           </div>
         </div>
       </header>
@@ -177,13 +177,13 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
             {localQuests.map((q) => {
               const done = q.progress >= q.goal;
               return (
-                <div key={q.id} className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${done ? "border-emerald-glow/50 bg-emerald-glow/10 glow-emerald" : "border-hairline bg-[color:var(--surface-2)]"}`}>
+                <div key={q.id} className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${done ? "border-emerald-glow/50 bg-emerald-glow/10 glow-emerald" : "border-hairline bg-(--surface-2)"}`}>
                   <Checkbox checked={done} onCheckedChange={(v) => handleQuestCheck(q.id, !!v)} />
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-hairline bg-[color:var(--surface-0)]"><q.icon size={18} className={q.tone} /></div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-hairline bg-(--surface-0)"><q.icon size={18} className={q.tone} /></div>
                   <div className="flex-1">
                     <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{q.label}</p>
                     <div className="mt-1.5 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[color:var(--surface-0)]"><div className={`h-full rounded-full ${done ? "bg-emerald-glow" : "bg-violet-glow"}`} style={{ width: `${(q.progress / q.goal) * 100}%` }} /></div>
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-(--surface-0)"><div className={`h-full rounded-full ${done ? "bg-emerald-glow" : "bg-violet-glow"}`} style={{ width: `${(q.progress / q.goal) * 100}%` }} /></div>
                       <span className="text-mono text-[10px] text-muted-foreground">{q.progress}/{q.goal}</span>
                     </div>
                   </div>
@@ -207,24 +207,24 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
           <CardContent className="flex flex-col gap-4">
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Nome do negócio</Label>
-              <Input value={biz} onChange={(e) => setBiz(e.target.value)} placeholder="Ex: Pizzaria Bella Napoli" className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              <Input value={biz} onChange={(e) => setBiz(e.target.value)} placeholder="Ex: Pizzaria Bella Napoli" className="mt-1.5 border-hairline bg-(--surface-2)" />
             </div>
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">E-mail alvo</Label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="contato@negocio.com.br" className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="contato@negocio.com.br" className="mt-1.5 border-hairline bg-(--surface-2)" />
             </div>
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Armadura do template</Label>
               <Select value={template} onValueChange={(v) => setTemplate(v as TemplateId)}>
-                <SelectTrigger className="mt-1.5 border-hairline bg-[color:var(--surface-2)]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 border-hairline bg-(--surface-2)"><SelectValue /></SelectTrigger>
                 <SelectContent>{(Object.keys(templates) as TemplateId[]).map((k) => (<SelectItem key={k} value={k}>{templates[k].label}</SelectItem>))}</SelectContent>
               </Select>
             </div>
-            <Button onClick={handleStrike} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-glow to-emerald-glow px-4 py-3 text-sm font-bold text-[color:var(--surface-0)] shadow-[0_0_30px_rgba(140,90,255,0.35)] transition hover:brightness-110">
+            <Button onClick={handleStrike} className="inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-violet-glow to-emerald-glow px-4 py-3 text-sm font-bold text-(--surface-0) shadow-[0_0_30px_rgba(140,90,255,0.35)] transition hover:brightness-110">
               <Sparkles size={16} /> Atacar o Portal (Gerar Roteiro)
             </Button>
             {script && (
-              <div className="mt-2 overflow-hidden rounded-xl border border-emerald-glow/30 bg-[color:var(--surface-0)]">
+              <div className="mt-2 overflow-hidden rounded-xl border border-emerald-glow/30 bg-(--surface-0)">
                 <div className="flex items-center justify-between border-b border-hairline px-4 py-2">
                   <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Roteiro forjado</p>
                   <Button variant="outline" size="sm" onClick={copyScript}><Copy size={12} /> Copiar</Button>
@@ -249,8 +249,8 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
             const toneBorder = it.tone === "emerald" ? "border-emerald-glow/30 hover:glow-emerald" : it.tone === "violet" ? "border-violet-glow/30 hover:glow-violet" : "border-amber-glow/30 hover:glow-amber";
             const toneText = it.tone === "emerald" ? "text-emerald-glow" : it.tone === "violet" ? "text-violet-glow" : "text-amber-glow";
             return (
-              <div key={it.id} className={`flex flex-col gap-3 rounded-2xl border bg-[color:var(--surface-1)] p-4 transition ${toneBorder}`}>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-[color:var(--surface-0)] ${toneText}`}><it.icon size={18} /></div>
+              <div key={it.id} className={`flex flex-col gap-3 rounded-2xl border bg-(--surface-1) p-4 transition ${toneBorder}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-(--surface-0) ${toneText}`}><it.icon size={18} /></div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{it.name}</p>
                   <p className="text-mono text-[10px] uppercase text-muted-foreground">Item consumível</p>
@@ -267,3 +267,4 @@ export function HunterSystemClient({ hunter, quests: initialQuests }: { hunter: 
     </>
   );
 }
+

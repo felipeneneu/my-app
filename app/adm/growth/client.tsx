@@ -145,7 +145,7 @@ export function GrowthClient({ hunter, habits: initialHabits }: {
           <div className="text-right">
             <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Tempo restante do dia</p>
             <p className={`text-display text-4xl ${penaltyActive ? "text-rose-glow" : "text-foreground"}`}>{String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}</p>
-            <div className="mt-2 h-1.5 w-56 overflow-hidden rounded-full bg-[color:var(--surface-2)]">
+            <div className="mt-2 h-1.5 w-56 overflow-hidden rounded-full bg-(--surface-2)">
               <div className={`h-full rounded-full ${penaltyActive ? "bg-rose-glow" : penaltyRisk ? "bg-amber-glow" : "bg-cyan-glow"}`} style={{ width: `${dayProgress * 100}%` }} />
             </div>
           </div>
@@ -163,7 +163,7 @@ export function GrowthClient({ hunter, habits: initialHabits }: {
             <div key={key} className={`rounded-2xl border p-6 ${meta.ring}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-current ${meta.tone} bg-[color:var(--surface-0)]`}><Icon size={22} /></div>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-current ${meta.tone} bg-(--surface-0)`}><Icon size={22} /></div>
                   <div>
                     <p className="text-mono text-[10px] uppercase tracking-widest opacity-80">{key} · {meta.note}</p>
                     <p className={`text-display text-xl ${meta.tone}`}>{meta.label}</p>
@@ -174,7 +174,7 @@ export function GrowthClient({ hunter, habits: initialHabits }: {
                   <p className={`text-display text-3xl ${meta.tone}`}>{a.level}</p>
                 </div>
               </div>
-              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[color:var(--surface-2)]">
+              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-(--surface-2)">
                 <div className={`h-full rounded-full bg-current ${meta.tone} transition-all`} style={{ width: `${Math.min(100, pct)}%` }} />
               </div>
               <p className="mt-2 text-mono text-[11px] text-muted-foreground">{a.xp} / {need} XP para o próximo nível</p>
@@ -198,14 +198,14 @@ export function GrowthClient({ hunter, habits: initialHabits }: {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--surface-2)]">
-              <div className="h-full rounded-full bg-gradient-to-r from-emerald-glow to-cyan-glow transition-all" style={{ width: `${growthPct}%` }} />
+            <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-(--surface-2)">
+              <div className="h-full rounded-full bg-linear-to-r from-emerald-glow to-cyan-glow transition-all" style={{ width: `${growthPct}%` }} />
             </div>
             <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {habits.map((q) => {
                 const meta = attrMeta[q.attribute];
                 return (
-                  <li key={q.id} className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${q.done ? "border-emerald-glow/40 bg-emerald-glow/5" : "border-hairline bg-[color:var(--surface-2)]"}`}>
+                  <li key={q.id} className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${q.done ? "border-emerald-glow/40 bg-emerald-glow/5" : "border-hairline bg-(--surface-2)"}`}>
                     <button onClick={() => handleToggle(q.id)} className={q.done ? "text-emerald-glow" : "text-muted-foreground"}>{q.done ? <CheckCircle2 size={20} /> : <Circle size={20} />}</button>
                     <div className="flex-1">
                       <p className={`text-sm ${q.done ? "text-muted-foreground line-through" : "text-foreground"}`}>{q.label}</p>
@@ -229,3 +229,4 @@ export function GrowthClient({ hunter, habits: initialHabits }: {
     </>
   );
 }
+

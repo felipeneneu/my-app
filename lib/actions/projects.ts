@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { emitNotification } from "./notifications";
 import { projects } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function getProjects() {
@@ -22,13 +23,26 @@ export async function createProject(name: string) {
     })
     .returning();
   
-    await emitNotification(
-  "info",
-  "Projeto criado",
-  `O projeto "${name}" foi criado com sucesso.`,
-  "low"
-);
+  await emitNotification(
+    "info",
+    "Projeto criado",
+    `O projeto "${name}" foi criado com sucesso.`,
+    "low"
+  );
 
   revalidatePath("/adm");
   return project[0];
+}
+
+export async function deleteProject(id: string) {
+  const project = await db.select().from(projects).where(eq(projects.id, id)).then(r => r[0]);
+  if (!project) return;
+  await db.delete(projects).where(eq(projects.id, id));
+  await emitNotification(
+    "system",
+    "Projeto removido",
+    `O projeto "${project.name}" foi removido permanentemente.`,
+    "low"
+  );
+  revalidatePath("/adm");
 }

@@ -67,31 +67,31 @@ export function QuotationsClient({ leads, monthlyGoal: initialGoal }: {
           <CardContent className="flex flex-col gap-4">
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Nome do cliente</Label>
-              <Input value={client} onChange={(e) => setClient(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              <Input value={client} onChange={(e) => setClient(e.target.value)} className="mt-1.5 border-hairline bg-(--surface-2)" />
             </div>
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo resumido</Label>
-              <Input value={scope} onChange={(e) => setScope(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              <Input value={scope} onChange={(e) => setScope(e.target.value)} className="mt-1.5 border-hairline bg-(--surface-2)" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Meta mensal (R$)</Label>
-                <Input type="number" value={meta} onChange={(e) => setMeta(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+                <Input type="number" value={meta} onChange={(e) => setMeta(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-(--surface-2)" />
               </div>
               <div>
                 <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Horas do projeto</Label>
-                <Input type="number" value={hours} onChange={(e) => setHours(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+                <Input type="number" value={hours} onChange={(e) => setHours(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-(--surface-2)" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Custos extras (R$)</Label>
-                <Input type="number" value={extras} onChange={(e) => setExtras(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+                <Input type="number" value={extras} onChange={(e) => setExtras(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-(--surface-2)" />
                 <p className="mt-1 text-[10px] text-muted-foreground">Domínio, hospedagem, licenças, assets premium.</p>
               </div>
               <div>
                 <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Prazo</Label>
-                <Input value={deadline} onChange={(e) => setDeadline(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+                <Input value={deadline} onChange={(e) => setDeadline(e.target.value)} className="mt-1.5 border-hairline bg-(--surface-2)" />
               </div>
             </div>
 
@@ -175,3 +175,4 @@ export function QuotationsClient({ leads, monthlyGoal: initialGoal }: {
     </>
   );
 }
+

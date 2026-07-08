@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,14 +26,13 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
     if (!name.trim()) return;
     setLoading(true);
 
-   
     const project = await createProject(name.trim());
 
     setName("");
     setLoading(false);
     onOpenChange(false);
     onCreated?.(project);
-    router.refresh();
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
   }
 
   return (

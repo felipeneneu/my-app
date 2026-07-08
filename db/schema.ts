@@ -39,15 +39,80 @@ export const leads = sqliteTable("leads", {
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
-export const projects = sqliteTable("projects", {
+export const clients = sqliteTable("clients", {
   id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
   name: text("name").notNull(),
-  clientName: text("client_name").notNull(),
-  price: integer("price").notNull(),
-  status: text("status", { enum: ["active", "paused", "completed", "cancelled"] }).notNull(),
-  clientMorale: integer("client_morale"),
-  startDate: text("start_date").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  document: text("document"),
+  notes: text("notes"),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
+
+export const projects = sqliteTable(
+  "projects",
+  {
+    id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+    name: text("name").notNull(),
+    clientName: text("client_name").notNull(),
+    clientId: text("client_id"),
+    price: integer("price").notNull(),
+    status: text("status", { enum: ["active", "paused", "completed", "cancelled"] }).notNull(),
+    clientMorale: integer("client_morale"),
+    startDate: text("start_date").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.clientId],
+      foreignColumns: [clients.id],
+    }).onDelete("set null"),
+  ],
+);
+
+export const checklistTemplates = sqliteTable("checklist_templates", {
+  id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const checklistTemplateItems = sqliteTable(
+  "checklist_template_items",
+  {
+    id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+    templateId: text("template_id").notNull(),
+    label: text("label").notNull(),
+    orderIndex: integer("order_index").notNull().default(0),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.templateId],
+      foreignColumns: [checklistTemplates.id],
+    }).onDelete("cascade"),
+  ],
+);
+
+export const projectChecklistItems = sqliteTable(
+  "project_checklist_items",
+  {
+    id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+    projectId: text("project_id").notNull(),
+    templateId: text("template_id"),
+    label: text("label").notNull(),
+    completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.projectId],
+      foreignColumns: [projects.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.templateId],
+      foreignColumns: [checklistTemplates.id],
+    }).onDelete("set null"),
+  ],
+);
 
 export const businessExpenses = sqliteTable(
   "business_expenses",
