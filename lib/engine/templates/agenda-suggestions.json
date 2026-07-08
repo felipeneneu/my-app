@@ -1,0 +1,53 @@
+{
+  "suggestions": [
+    {
+      "id": "morning-focus",
+      "condition": "morning_no_focus",
+      "message": "Sua manhã está livre. Sugiro alocar {hours}h de Foco Profundo para adiantar o projeto \"{projectName}\".",
+      "action": "Agendar agora",
+      "icon": "Zap"
+    },
+    {
+      "id": "afternoon-meetings",
+      "condition": "afternoon_empty",
+      "message": "Tarde sem compromissos. Que tal concentrar reuniões com clientes aqui? É o horário de maior engajamento.",
+      "action": "Criar bloco de reuniões",
+      "icon": "Video"
+    },
+    {
+      "id": "reschedule-slipped",
+      "condition": "task_slipped_yesterday",
+      "message": "{count} tarefa(s) escorregaram ontem. Sugiro realocar o bloco das {timeSlot} para o projeto \"{projectName}\".",
+      "action": "Reagendar",
+      "icon": "CalendarSync"
+    },
+    {
+      "id": "batch-admin",
+      "condition": "admin_pending",
+      "message": "Você tem {count} tarefas administrativas pendentes (faturamento, contratos). Agrupe tudo em {minutes}min no fim do dia.",
+      "action": "Criar bloco admin",
+      "icon": "Briefcase"
+    },
+    {
+      "id": "deadline-today",
+      "condition": "deadline_today",
+      "message": "O prazo \"{taskName}\" vence HOJE. Proteja as próximas {hours}h para finalizar sem interrupções.",
+      "action": "Bloquear agenda",
+      "icon": "Timer"
+    },
+    {
+      "id": "energy-match",
+      "condition": "low_energy_task_mismatch",
+      "message": "Você tem uma tarefa criativa ({taskName}) agendada para {timeSlot}, mas seu pico de energia é de manhã. Considere trocar com uma tarefa administrativa.",
+      "action": "Sugerir troca",
+      "icon": "Sparkles"
+    },
+    {
+      "id": "deep-work-streak",
+      "condition": "focus_streak_3_days",
+      "message": "3 dias seguidos de foco profundo! Seu ritmo está excelente. Que tal manter mais {hours}h hoje e fechar a semana com chave de ouro?",
+      "action": "Manter ritmo",
+      "icon": "Flame"
+    }
+  ]
+}

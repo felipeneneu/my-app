@@ -1,0 +1,112 @@
+{
+  "patterns": [
+    {
+      "id": "task-overdue",
+      "trigger": "tasks_overdue",
+      "priority": "high",
+      "type": "deadline",
+      "title": "Tarefa atrasada",
+      "message": "Você tem {count} tarefa(s) vencida(s) no projeto \"{projectName}\". O prazo era {dueDate}.",
+      "icon": "AlertTriangle"
+    },
+    {
+      "id": "no-tasks-today",
+      "trigger": "no_tasks_today",
+      "priority": "low",
+      "type": "suggestion",
+      "title": "Dia livre",
+      "message": "Nenhuma tarefa agendada para hoje. Que tal usar o bloco da manhã para prospectar novos leads ou estudar?",
+      "icon": "Coffee"
+    },
+    {
+      "id": "project-budget-low",
+      "trigger": "budget_below_30",
+      "priority": "high",
+      "type": "warning",
+      "title": "Orçamento crítico",
+      "message": "O projeto \"{projectName}\" já consumiu {percent}% do orçamento ({spent}/{budget}). Reveja os custos restantes.",
+      "icon": "Wallet"
+    },
+    {
+      "id": "streak-at-risk",
+      "trigger": "growth_pending_late",
+      "priority": "medium",
+      "type": "warning",
+      "title": "Streak em risco",
+      "message": "Faltam {pendingCount} hábito(s) para completar hoje e apenas {hoursLeft}h restantes. Não perca sua sequência de {streak} dias!",
+      "icon": "Flame"
+    },
+    {
+      "id": "milestone-approaching",
+      "trigger": "milestone_3_days",
+      "priority": "medium",
+      "type": "deadline",
+      "title": "Marco se aproxima",
+      "message": "O marco \"{milestone}\" do projeto \"{projectName}\" vence em {daysLeft} dias. {progress}% concluído.",
+      "icon": "Target"
+    },
+    {
+      "id": "client-no-contact",
+      "trigger": "lead_stale_7_days",
+      "priority": "medium",
+      "type": "insight",
+      "title": "Lead sem contato",
+      "message": "Faz {daysSinceContact} dias desde o último contato com \"{leadName}\". Envie um follow-up hoje.",
+      "icon": "Mail"
+    },
+    {
+      "id": "profit-margin-low",
+      "trigger": "margin_below_30",
+      "priority": "medium",
+      "type": "insight",
+      "title": "Margem apertada",
+      "message": "O projeto \"{projectName}\" está com margem de {margin}%. Reveja custos ou renegocie escopo.",
+      "icon": "TrendingDown"
+    },
+    {
+      "id": "focus-block-starting",
+      "trigger": "focus_block_15min",
+      "priority": "low",
+      "type": "info",
+      "title": "Foco profundo iminente",
+      "message": "Seu bloco de Foco Profundo começa em 15 minutos. Prepare o ambiente e desligue notificações.",
+      "icon": "Sparkles"
+    },
+    {
+      "id": "weekly-review-due",
+      "trigger": "friday_afternoon",
+      "priority": "low",
+      "type": "suggestion",
+      "title": "Revisão semanal",
+      "message": "Sexta-feira à tarde! Que tal fazer sua revisão semanal de entregas, finanças e planejar a próxima sprint?",
+      "icon": "CalendarSync"
+    },
+    {
+      "id": "project-completed",
+      "trigger": "project_100_percent",
+      "priority": "low",
+      "type": "system",
+      "title": "Projeto concluído 🎉",
+      "message": "O projeto \"{projectName}\" foi concluído! Não esqueça de emitir a nota fiscal e coletar o feedback do cliente.",
+      "icon": "Rocket"
+    },
+    {
+      "id": "expense-high-month",
+      "trigger": "expenses_above_avg",
+      "priority": "medium",
+      "type": "warning",
+      "title": "Gastos acima da média",
+      "message": "Este mês você já gastou {currentMonth} em custos — {percent}% acima da sua média mensal de {avgMonth}.",
+      "icon": "Receipt"
+    },
+    {
+      "id": "gold-low",
+      "trigger": "gold_below_100",
+      "priority": "low",
+      "type": "info",
+      "title": "Gold acabando",
+      "message": "Você tem apenas {gold} gold. Complete quests do Hunter System para reabastecer.",
+      "icon": "Coins"
+    }
+  ]
+}

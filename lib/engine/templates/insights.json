@@ -1,0 +1,74 @@
+{
+  "insights": [
+    {
+      "id": "busiest-day",
+      "condition": "tasks_by_day",
+      "message": "Sua {dayOfWeek} é o dia mais cheio — {count} tarefas. Proteja esse dia de reuniões extras.",
+      "icon": "CalendarSync",
+      "tone": "amber"
+    },
+    {
+      "id": "best-margin-project",
+      "condition": "highest_margin",
+      "message": "\"{projectName}\" é seu projeto com melhor margem ({margin}%). Considere upsell para esse cliente.",
+      "icon": "TrendingUp",
+      "tone": "emerald"
+    },
+    {
+      "id": "lowest-margin-project",
+      "condition": "lowest_margin",
+      "message": "\"{projectName}\" tem a pior margem ({margin}%). Revise escopo ou precifique melhor o próximo sprint.",
+      "icon": "TrendingDown",
+      "tone": "rose"
+    },
+    {
+      "id": "weekly-focus-hours",
+      "condition": "focus_hours_this_week",
+      "message": "Você registrou {hours}h de foco profundo esta semana. A meta são {goal}h — {remaining}h restantes.",
+      "icon": "Zap",
+      "tone": "emerald"
+    },
+    {
+      "id": "meeting-overload",
+      "condition": "too_many_meetings",
+      "message": "Esta semana tem {count} reuniões agendadas. Considere agrupar em um único dia para preservar foco.",
+      "icon": "Video",
+      "tone": "violet"
+    },
+    {
+      "id": "client-morale-drop",
+      "condition": "client_morale_low",
+      "message": "O moral do cliente \"{clientName}\" está baixo. Agende uma call de alinhamento hoje.",
+      "icon": "Smile",
+      "tone": "rose"
+    },
+    {
+      "id": "monthly-goal-pacing",
+      "condition": "monthly_goal_track",
+      "message": "Você está em {percent}% da meta mensal de {goal}. {remaining} dias restantes — média necessária de {daily}/dia.",
+      "icon": "Target",
+      "tone": "violet"
+    },
+    {
+      "id": "streak-milestone",
+      "condition": "streak_7_days",
+      "message": "Parabéns! Você completou {days} dias de streak no Growth System. A consistência é seu superpoder.",
+      "icon": "Flame",
+      "tone": "emerald"
+    },
+    {
+      "id": "project-sprint-pacing",
+      "condition": "project_sprint_status",
+      "message": "Sprint {sprint} do projeto \"{projectName}\": {percent}% concluído com {remainingDays} dias restantes. Ritmo {pace}.",
+      "icon": "Rocket",
+      "tone": "amber"
+    },
+    {
+      "id": "email-follow-up",
+      "condition": "unread_leads",
+      "message": "Você tem {count} leads sem retorno há mais de {days} dias. Um follow-up rápido pode render novos projetos.",
+      "icon": "Mail",
+      "tone": "violet"
+    }
+  ]
+}
