@@ -1,9 +1,10 @@
 "use server";
 
 import { db } from "@/db";
-import { leads, clients } from "@/db/schema";
+import { leads, clients, hunterStatus } from "@/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { addXp, addGold } from "./hunter";
 
 export type PipelineLead = {
   id: string;
@@ -31,7 +32,7 @@ export async function getPipelineLeads() {
   return db
     .select()
     .from(leads)
-    .where(sql`${leads.pipelineStage} IS NOT NULL`)
+    .where(sql`${leads.pipelineStage} IS NOT NULL OR ${leads.status} IN ('won', 'lost')`)
     .orderBy(desc(leads.lastContact)) as Promise<PipelineLead[]>;
 }
 
@@ -151,7 +152,7 @@ export async function convertToClient(leadId: string) {
 
   if (!lead) throw new Error("Lead not found");
 
-  const client = await db
+  const [client] = await db
     .insert(clients)
     .values({
       name: lead.businessName,
@@ -159,21 +160,29 @@ export async function convertToClient(leadId: string) {
       phone: lead.phone,
       notes: lead.notes,
     })
-    .returning() as unknown as {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    notes: string | null;
-    createdAt: string;
-  }[];
+    .returning();
 
   await db
     .update(leads)
     .set({ pipelineStage: null, status: "won" })
     .where(eq(leads.id, leadId));
 
+  const oldHunter = await db.select().from(hunterStatus).limit(1).then(r => r[0]);
+  const oldLevel = oldHunter?.level ?? 0;
+
+  const XP_GAIN = 100;
+  const GOLD_GAIN = 50;
+  const hunter = await addXp(XP_GAIN);
+  await addGold(GOLD_GAIN);
+
   revalidatePath("/adm/pipeline");
+  revalidatePath("/adm/clients");
   revalidatePath("/adm");
-  return client[0];
+  return {
+    client,
+    xpGained: XP_GAIN,
+    goldGained: GOLD_GAIN,
+    leveledUp: hunter ? hunter.level > oldLevel : false,
+    newLevel: hunter?.level ?? null,
+  };
 }

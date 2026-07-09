@@ -96,7 +96,7 @@ const navGroups: { label: string; items: { icon: typeof LayoutDashboard; label: 
     label: "Pessoal",
     items: [
       { icon: Dumbbell, label: "Evolução", href: "/adm/growth" },
-      { icon: CalendarSync, label: "Agenda", href: "/adm" },
+      { icon: CalendarSync, label: "Agenda", href: "/adm/calendar" },
       { icon: ClipboardList, label: "Checklists", href: "/adm/checklist-templates" },
     ],
   },

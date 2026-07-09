@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 type ReceiptData = {
   id: string;
-  projectId: string;
+  projectId: string | null;
   contentJson: string;
 };
 

@@ -19,8 +19,10 @@ import { Plus } from "lucide-react";
 const formSchema = z.object({
   title: z.string().min(1, "O nome da tarefa é obrigatório"),
   projectId: z.string().min(1, "Selecione um projeto"),
-  blockType: z.enum(["deep_focus", "meeting", "deadline"]),
+  blockType: z.enum(["deep_focus", "meeting", "deadline", "design", "admin"]),
   dueDate: z.string().min(1, "A data de entrega é obrigatória"),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -29,6 +31,8 @@ const blockTypeLabels: Record<FormValues["blockType"], string> = {
   deep_focus: "Foco Profundo",
   meeting: "Reunião",
   deadline: "Prazo",
+  design: "UI/UX Design",
+  admin: "Admin e Faturamento",
 };
 
 interface Props {
@@ -120,6 +124,17 @@ export function CreateTaskSheet({ open, onOpenChange, defaultDate, projects, onN
             <Label htmlFor="dueDate">Data de entrega</Label>
             <Input id="dueDate" type="date" {...register("dueDate")} />
             {errors.dueDate && <p className="text-xs text-destructive">{errors.dueDate.message}</p>}
+          </div>
+
+          <div className="flex gap-2">
+            <div className="flex flex-col gap-2 flex-1">
+              <Label htmlFor="startTime">Início</Label>
+              <Input id="startTime" type="time" {...register("startTime")} />
+            </div>
+            <div className="flex flex-col gap-2 flex-1">
+              <Label htmlFor="endTime">Fim</Label>
+              <Input id="endTime" type="time" {...register("endTime")} />
+            </div>
           </div>
 
           <Button type="submit" disabled={isSubmitting} className="mt-2">

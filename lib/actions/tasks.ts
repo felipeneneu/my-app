@@ -8,8 +8,10 @@ import { z } from "zod";
 const schema = z.object({
   title: z.string().min(1, "O nome da tarefa é obrigatório"),
   projectId: z.string().min(1, "Selecione um projeto"),
-  blockType: z.enum(["deep_focus", "meeting", "deadline"]),
+  blockType: z.enum(["deep_focus", "meeting", "deadline", "design", "admin"]),
   dueDate: z.string().min(1, "A data de entrega é obrigatória"),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
 });
 
 export async function getTasks() {

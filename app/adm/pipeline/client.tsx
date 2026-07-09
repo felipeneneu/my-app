@@ -25,6 +25,9 @@ import {
   UserCheck,
   StickyNote,
   GripVertical,
+  PartyPopper,
+  Trophy,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,11 +68,11 @@ import { useDraggable } from "@dnd-kit/core";
 type ColumnKey = "hot" | "warm" | "cold" | "won" | "lost";
 
 const COLUMNS: { key: ColumnKey; label: string; icon: string }[] = [
-  { key: "hot", label: "Hot", icon: "🔥" },
-  { key: "warm", label: "Warm", icon: "☀️" },
-  { key: "cold", label: "Cold", icon: "🧊" },
-  { key: "won", label: "Won", icon: "🏆" },
-  { key: "lost", label: "Lost", icon: "❌" },
+  { key: "hot", label: "Quente", icon: "🔥" },
+  { key: "warm", label: "Morno", icon: "☀️" },
+  { key: "cold", label: "Frio", icon: "🧊" },
+  { key: "won", label: "Ganho", icon: "🏆" },
+  { key: "lost", label: "Perdido", icon: "❌" },
 ];
 
 const NEXT_STAGE: Partial<Record<ColumnKey, ColumnKey>> = {
@@ -147,7 +150,7 @@ function DraggableCard({
   column: ColumnKey;
   onMove: (id: string, col: ColumnKey, dir: "prev" | "next") => void;
   onContact: (id: string) => void;
-  onConvert: (id: string) => void;
+  onConvert: (lead: PipelineLead) => void;
   onDelete: (id: string, name: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -239,7 +242,7 @@ function DraggableCard({
               <button
                 type="button"
                 className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-emerald-glow hover:brightness-110"
-                onClick={() => onConvert(lead.id)}
+                onClick={() => onConvert(lead)}
               >
                 <UserCheck size={11} /> Cliente
               </button>
@@ -277,7 +280,7 @@ function DroppableColumn({
   leads: PipelineLead[];
   onMove: (id: string, col: ColumnKey, dir: "prev" | "next") => void;
   onContact: (id: string) => void;
-  onConvert: (id: string) => void;
+  onConvert: (lead: PipelineLead) => void;
   onDelete: (id: string, name: string) => void;
   isOver: boolean;
 }) {
@@ -336,6 +339,20 @@ export function PipelineClient({
   const [contactLeadId, setContactLeadId] = useState<string | null>(null);
   const [contactNote, setContactNote] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [convertConfirmOpen, setConvertConfirmOpen] = useState(false);
+  const [convertResultDialogOpen, setConvertResultDialogOpen] = useState(false);
+  const [convertLeadId, setConvertLeadId] = useState<string | null>(null);
+  const [convertLeadName, setConvertLeadName] = useState("");
+  const [convertLeadEmail, setConvertLeadEmail] = useState("");
+  const [convertLeadPhone, setConvertLeadPhone] = useState("");
+  const [convertResult, setConvertResult] = useState<{
+    clientName: string;
+    xpGained: number;
+    goldGained: number;
+    leveledUp: boolean;
+    newLevel: number | null;
+  } | null>(null);
+  const [converting, setConverting] = useState(false);
 
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -437,11 +454,35 @@ export function PipelineClient({
     toast.success(`"${name}" removido`);
   }
 
-  async function handleConvert(id: string) {
-    await convertToClient(id);
-    queryClient.invalidateQueries({ queryKey: ["pipeline-leads"] });
-    queryClient.invalidateQueries({ queryKey: ["pipeline-stats"] });
-    toast.success("Lead convertido em cliente");
+  function handleOpenConvertConfirm(lead: PipelineLead) {
+    setConvertLeadId(lead.id);
+    setConvertLeadName(lead.businessName);
+    setConvertLeadEmail(lead.email ?? "");
+    setConvertLeadPhone(lead.phone ?? "");
+    setConvertConfirmOpen(true);
+  }
+
+  async function handleConfirmConvert() {
+    if (!convertLeadId) return;
+    setConverting(true);
+    setConvertConfirmOpen(false);
+    try {
+      const result = await convertToClient(convertLeadId);
+      setConvertResult({
+        clientName: result.client.name,
+        xpGained: result.xpGained,
+        goldGained: result.goldGained,
+        leveledUp: result.leveledUp,
+        newLevel: result.newLevel,
+      });
+      setConvertResultDialogOpen(true);
+      queryClient.invalidateQueries({ queryKey: ["pipeline-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["pipeline-stats"] });
+    } catch (e) {
+      toast.error("Erro ao converter lead: " + (e instanceof Error ? e.message : "tente novamente"));
+    } finally {
+      setConverting(false);
+    }
   }
 
   return (
@@ -505,9 +546,9 @@ export function PipelineClient({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cold">🧊 Cold</SelectItem>
-                    <SelectItem value="warm">☀️ Warm</SelectItem>
-                    <SelectItem value="hot">🔥 Hot</SelectItem>
+                    <SelectItem value="cold">🧊 Frio</SelectItem>
+                    <SelectItem value="warm">☀️ Morno</SelectItem>
+                    <SelectItem value="hot">🔥 Quente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -535,7 +576,7 @@ export function PipelineClient({
                 setContactLeadId(id);
                 setContactDialogOpen(true);
               }}
-              onConvert={handleConvert}
+              onConvert={handleOpenConvertConfirm}
               onDelete={handleDelete}
               isOver={activeId !== null && activeColumn !== col.key}
             />

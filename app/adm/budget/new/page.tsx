@@ -3,7 +3,10 @@ import { getCompany } from "@/lib/actions/company";
 import { getBudgets } from "@/lib/actions/budget";
 import { BudgetNewClient } from "./client";
 
-export default async function BudgetNewPage() {
+export default async function BudgetNewPage(props: { searchParams?: Promise<{ clientId?: string }> }) {
+  const searchParams = await props.searchParams;
+  const preselectedClientId = searchParams?.clientId ?? null;
+
   const [clients, company, budgets] = await Promise.all([
     getClients(),
     getCompany(),
@@ -27,6 +30,7 @@ export default async function BudgetNewPage() {
         pixKey: company.pixKey,
         pixKeyType: company.pixKeyType,
       } : null}
+      preselectedClientId={preselectedClientId}
     />
   );
 }

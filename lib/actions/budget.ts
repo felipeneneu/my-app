@@ -30,7 +30,7 @@ export async function createBudget(data: {
   deliverables: string[];
 }) {
   const doc = await db.insert(documents).values({
-    projectId: "pending",
+    projectId: undefined as any,
     type: "budget",
     contentJson: JSON.stringify({ ...data, status: "pending", createdAt: new Date().toISOString() }),
   }).returning();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarSync,
@@ -51,18 +52,14 @@ function getISOWeek(d: Date) {
   return 1 + Math.ceil((firstThursday - temp.valueOf()) / 604800000);
 }
 
-function buildWeek(tasks?: { dueDate: string; title: string; blockType: string; projectName?: string }[]): Day[] {
+function buildWeek(tasks?: { dueDate: string; title: string; blockType: string; projectName?: string; startTime?: string | null; endTime?: string | null }[]): Day[] {
   const today = new Date();
-  const dayOfWeek = today.getDay();
-  const diffToWednesday = dayOfWeek <= 3 ? 3 - dayOfWeek : 10 - dayOfWeek;
-  const wednesday = new Date(today);
-  wednesday.setDate(today.getDate() + diffToWednesday - 3);
   const names = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
   const days: Day[] = [];
 
   for (let i = 0; i < 9; i++) {
-    const date = new Date(wednesday);
-    date.setDate(wednesday.getDate() + i);
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
     const dayIndex = date.getDay();
     const isToday = date.toDateString() === today.toDateString();
     const dayNum = date.getDate();
@@ -74,7 +71,10 @@ function buildWeek(tasks?: { dueDate: string; title: string; blockType: string; 
       num: dayNum,
       type: "empty",
       label: dayTasks.length > 0 ? dayTasks[0].title : "Slot Livre",
-      detail: dayTasks.length > 0 ? dayTasks.map((t) => t.title).join(", ") : undefined,
+      detail: dayTasks.length > 0 ? dayTasks.map((t) => {
+        const timeStr = t.startTime && t.endTime ? ` (${t.startTime.slice(0, 5)}-${t.endTime.slice(0, 5)})` : "";
+        return `${t.title}${timeStr}`;
+      }).join(", ") : undefined,
       today: isToday || undefined,
     };
 
@@ -205,9 +205,9 @@ function AutomationPanel() {
           <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Regras da agenda</p>
           <h3 className="text-base font-semibold text-foreground">Modos de foco diários</h3>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-glow/30 bg-violet-glow/10 px-2.5 py-1 text-[10px] font-semibold text-violet-glow">
-          <CalendarSync size={12} /> Sincroniza com o Google Calendar
-        </span>
+        <Link href="/adm/calendar" className="inline-flex items-center gap-1.5 rounded-full border border-violet-glow/30 bg-violet-glow/10 px-2.5 py-1 text-[10px] font-semibold text-violet-glow hover:brightness-110 transition-all">
+          <CalendarSync size={12} /> Ver calendário semanal
+        </Link>
       </div>
       <div className="flex flex-col gap-2 p-4">
         {focusModes.map((m) => {
@@ -283,6 +283,7 @@ export function DashboardClient({ autoOpenProject = false }: { autoOpenProject?:
 
   const tasks = tasksData.map((t) => ({
     dueDate: t.dueDate, title: t.title, blockType: t.blockType,
+    startTime: t.startTime, endTime: t.endTime,
   }));
 
 
@@ -414,8 +415,8 @@ export function DashboardClient({ autoOpenProject = false }: { autoOpenProject?:
           ))}
         </div>
         <div className="mt-4 flex items-center justify-between rounded-xl border border-hairline bg-(--surface-1) px-4 py-3 text-xs text-muted-foreground">
-          <span className="text-mono uppercase tracking-widest">Timeline sincronizada com o Google Calendar · dados do banco local</span>
-          <button className="text-emerald-glow hover:brightness-110">Reorganizar semana →</button>
+          <span className="text-mono uppercase tracking-widest">Calendário interno · dados salvos no banco local</span>
+          <Link href="/adm/calendar" className="text-emerald-glow hover:brightness-110">Ver calendário completo →</Link>
         </div>
       </section>
     </>

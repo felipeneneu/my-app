@@ -57,9 +57,10 @@ type CompanyData = {
   pixKeyType: string | null;
 };
 
-export function BudgetNewClient({ clients, company }: {
+export function BudgetNewClient({ clients, company, preselectedClientId }: {
   clients: ClientData[];
   company: CompanyData | null;
+  preselectedClientId?: string | null;
 }) {
   const router = useRouter();
   const [clientName, setClientName] = useState("");
@@ -93,6 +94,13 @@ export function BudgetNewClient({ clients, company }: {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (preselectedClientId) {
+      const found = clients.find(c => c.id === preselectedClientId);
+      if (found) handleSelectClient(found);
+    }
+  }, [preselectedClientId, clients]);
 
   const meta = parseCurrency(metaRaw);
   const extras = parseCurrency(extrasRaw);

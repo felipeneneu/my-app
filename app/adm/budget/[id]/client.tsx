@@ -31,7 +31,7 @@ type CompanyInfo = {
 };
 
 export function BudgetDetailClient({ budget, company }: {
-  budget: { id: string; projectId: string; contentJson: string };
+  budget: { id: string; projectId: string | null; contentJson: string };
   company: CompanyInfo | null;
 }) {
   const router = useRouter();

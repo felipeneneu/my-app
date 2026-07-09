@@ -11,7 +11,7 @@ import { approveContract } from "@/lib/actions/contract";
 
 type ContractData = {
   id: string;
-  projectId: string;
+  projectId: string | null;
   contentJson: string;
 };
 

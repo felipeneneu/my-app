@@ -5,7 +5,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, Circle, Plus, Smile, Meh, Frown, Trash2,
-  Wallet, TrendingUp, Target, FileText, ClipboardList, Receipt, Copy, Download,
+  Wallet, TrendingUp, Target, FileText, ClipboardList,
+  ExternalLink, Clock, Hash, Send,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -21,18 +22,30 @@ type ExpenseData = { id: string; label: string; amount: number; category: string
 type ProjectData = { id: string; name: string; clientName: string; price: number; status: string; startDate: string };
 type ChecklistItemData = { id: string; label: string; completed: boolean };
 type ChecklistTemplateData = { id: string; name: string };
-type DocTab = "briefing" | "os" | "recibos";
+type TaskData = { id: string; title: string; blockType: string; dueDate: string; startTime: string | null; endTime: string | null; completed: boolean };
+type TokenData = { token: string; active: boolean } | null;
+
+const blockTypeMeta: Record<string, { label: string; icon: string; color: string }> = {
+  deep_focus: { label: "Foco Profundo", icon: "🎯", color: "text-emerald-glow" },
+  meeting: { label: "Reunião", icon: "📹", color: "text-violet-glow" },
+  deadline: { label: "Prazo", icon: "⏰", color: "text-amber-glow" },
+  design: { label: "UI/UX Design", icon: "🎨", color: "text-cyan-glow" },
+  admin: { label: "Admin", icon: "💼", color: "text-amber-glow" },
+};
 
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function ProjectDetailClient({ project, milestones: initialMilestones, expenses: initialExpenses, checklistTemplates, checklistItems: initialChecklistItems }: {
+export function ProjectDetailClient({ project, contractData, milestones: initialMilestones, expenses: initialExpenses, checklistTemplates, checklistItems: initialChecklistItems, projectTasks, projectToken }: {
   project: ProjectData;
+  contractData: Record<string, unknown> | null;
   milestones: MilestoneData[];
   expenses: ExpenseData[];
   checklistTemplates: ChecklistTemplateData[];
   checklistItems: ChecklistItemData[];
+  projectTasks: TaskData[];
+  projectToken: TokenData;
 }) {
   const [milestones, setMilestones] = useState<MilestoneData[]>(initialMilestones.length > 0 ? initialMilestones : [
     { id: "m1", label: "Kickoff e escopo", status: "done" },
@@ -126,44 +139,116 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
         <Badge variant="outline"><span className="text-mono">{project.status}</span></Badge>
       </header>
 
-      <section className="grid grid-cols-1 gap-4 px-8 pt-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-hairline bg-(--surface-1) p-6">
-          <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Projeto ativo · {project.status.toUpperCase()}</p>
-          <h1 className="text-display mt-1 text-4xl text-foreground">{project.name}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Acompanhamento de progresso, entregas e saúde financeira em tempo real.</p>
-          <div className="mt-6 flex items-center gap-4">
-            <div className="relative flex h-24 w-24 items-center justify-center">
-              <svg viewBox="0 0 100 100" className="h-24 w-24 -rotate-90">
-                <circle cx="50" cy="50" r="42" strokeWidth="8" fill="none" className="stroke-(--surface-2)" />
-                <circle cx="50" cy="50" r="42" strokeWidth="8" fill="none" strokeLinecap="round" strokeDasharray={264} strokeDashoffset={264 - (264 * progress) / 100} className="stroke-emerald-glow drop-shadow-[0_0_10px_rgba(0,255,180,0.6)] transition-all" />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center"><span className="text-display text-xl text-foreground">{Math.round(progress)}%</span></div>
-            </div>
+      {/* Resumo do Projeto */}
+      <section className="px-8 pt-8">
+        <div className="rounded-2xl border border-hairline bg-(--surface-1) p-6">
+          <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Progresso das entregas</p>
-              <p className="mt-1 text-sm text-foreground">{doneCount} de {milestones.length} marcos concluídos</p>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-(--surface-2)">
-                <div className="h-full rounded-full bg-linear-to-r from-emerald-glow to-violet-glow" style={{ width: `${progress}%` }} />
+              <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Projeto ativo · {project.status.toUpperCase()}</p>
+              <h1 className="text-display mt-1 text-4xl text-foreground">{project.name}</h1>
+              <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-3">
+                <div>
+                  <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cliente</p>
+                  <p className="text-sm text-foreground">{contractData?.clientName as string || project.clientName}</p>
+                </div>
+                <div>
+                  <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Valor</p>
+                  <p className="text-sm text-foreground">{formatBRL(project.price)}</p>
+                </div>
+                <div>
+                  <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo</p>
+                  <p className="text-sm text-foreground">{contractData?.scope as string || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Prazo</p>
+                  <p className="text-sm text-foreground">{contractData?.deadline as string || "—"}</p>
+                </div>
+              </div>
+              {!!contractData && (contractData.deliverables as string[] | undefined) && (
+                <div className="mt-3">
+                  <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Entregáveis</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {(contractData.deliverables as string[]).map((d: string, i: number) => (
+                      <span key={i} className="rounded-md border border-hairline bg-(--surface-2) px-2 py-0.5 text-[11px] text-muted-foreground">{d}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="shrink-0 flex flex-col items-center gap-2 pl-6">
+              <div className="relative flex h-20 w-20 items-center justify-center">
+                <svg viewBox="0 0 100 100" className="h-20 w-20 -rotate-90">
+                  <circle cx="50" cy="50" r="42" strokeWidth="8" fill="none" className="stroke-(--surface-2)" />
+                  <circle cx="50" cy="50" r="42" strokeWidth="8" fill="none" strokeLinecap="round" strokeDasharray={264} strokeDashoffset={264 - (264 * progress) / 100} className="stroke-emerald-glow drop-shadow-[0_0_10px_rgba(0,255,180,0.6)] transition-all" />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center"><span className="text-display text-xl text-foreground">{Math.round(progress)}%</span></div>
+              </div>
+              <p className="text-mono text-[9px] uppercase tracking-widest text-muted-foreground">{doneCount}/{milestones.length} marcos</p>
+            </div>
+          </div>
+          {projectTasks.length > 0 && (
+            <div className="mt-5 border-t border-hairline pt-4">
+              <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Próximas tarefas</p>
+              <div className="flex flex-col gap-1.5">
+                {projectTasks.filter(t => !t.completed).slice(0, 5).map(t => {
+                  const meta = blockTypeMeta[t.blockType] || { label: t.blockType, icon: "📋", color: "text-muted-foreground" };
+                  const timeRange = t.startTime && t.endTime ? `${t.startTime.slice(0, 5)}-${t.endTime.slice(0, 5)}` : null;
+                  return (
+                    <div key={t.id} className="flex items-center gap-2 rounded-md bg-(--surface-2) px-3 py-1.5 text-sm">
+                      <span>{meta.icon}</span>
+                      <span className="flex-1 text-foreground">{t.title}</span>
+                      {timeRange && <span className="text-mono text-[11px] text-muted-foreground">{timeRange}</span>}
+                      <span className={`text-mono text-[10px] ${meta.color}`}>{meta.label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          )}
+          {/* Quick links */}
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-hairline pt-4">
+            <Link href={`/adm/project/${project.id}/briefing`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-cyan-glow/40 transition-colors">
+              <Hash size={12} /> Briefing
+            </Link>
+            <Link href={`/adm/budget`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-emerald-glow/40 transition-colors">
+              <FileText size={12} /> Orçamento
+            </Link>
+            <button
+              onClick={async () => {
+                const { generateProjectToken } = await import("@/lib/actions/tracking");
+                const result = await generateProjectToken(project.id);
+                const fullUrl = `${window.location.origin}${result.url}`;
+                await navigator.clipboard.writeText(fullUrl);
+                toast.success("Link do cliente copiado!");
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-violet-glow/40 transition-colors"
+            >
+              <ExternalLink size={12} /> Link do Cliente
+            </button>
           </div>
         </div>
+      </section>
 
-        <div className={`rounded-2xl border p-6 ${toneRing}`}>
-          <p className="text-mono text-[10px] uppercase tracking-widest">Moral do cliente</p>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-current bg-(--surface-0)"><morale.icon size={26} /></div>
-            <div>
-              <p className="text-display text-2xl">{morale.label}</p>
-              <p className="text-xs opacity-80">{morale.note}</p>
+      {/* Moral do cliente */}
+      <section className="px-8 pt-4">
+        <div className={`rounded-2xl border p-5 ${toneRing}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-current bg-(--surface-0)"><morale.icon size={22} /></div>
+              <div>
+                <p className="text-mono text-[10px] uppercase tracking-widest opacity-70">Moral do cliente</p>
+                <p className="text-display text-xl">{morale.label}</p>
+              </div>
             </div>
-          </div>
-          <div className="mt-5 space-y-1.5 text-[11px]">
-            <p className="text-mono uppercase tracking-widest opacity-70">Termômetro</p>
-            <div className="flex gap-1">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <span key={i} className={`h-2 flex-1 rounded-full ${i < Math.round(deliveredRate * 10) ? "bg-current" : "bg-current/20"}`} />
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="text-mono text-[10px] uppercase tracking-widest opacity-50">Termômetro</span>
+              <div className="flex gap-0.5">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <span key={i} className={`h-2 w-2 rounded-full ${i < Math.round(deliveredRate * 10) ? "bg-current" : "bg-current/20"}`} />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -304,113 +389,8 @@ export function ProjectDetailClient({ project, milestones: initialMilestones, ex
         </Card>
       </section>
 
-      <ProjectDocumentsSection projectName={project.name} budget={budget} />
     </>
   );
 }
 
-function ProjectDocumentsSection({ projectName, budget }: { projectName: string; budget: number }) {
-  const [tab, setTab] = useState<DocTab>("briefing");
-  const [clientName, setClientName] = useState("Cliente");
-  const [clientDoc, setClientDoc] = useState("CNPJ");
-  const [briefingGoal, setBriefingGoal] = useState("Aumentar resultados digitais.");
-  const [briefingScope, setBriefingScope] = useState("Desenvolvimento web + integrações.");
-  const [briefingDeadline, setBriefingDeadline] = useState("45 dias corridos");
-  const [osScope, setOsScope] = useState("Desenvolvimento full-stack, design de interface, deploy em produção e 30 dias de suporte pós-entrega.");
 
-  const half = budget / 2;
-  const today = new Date().toLocaleDateString("pt-BR");
-
-  const briefingText = `BRIEFING DE PROJETO — ${projectName.toUpperCase()}\n\nCliente: ${clientName}\nDocumento: ${clientDoc}\nData: ${today}\n\n1. OBJETIVO DE NEGÓCIO\n${briefingGoal}\n\n2. ESCOPO PROPOSTO\n${briefingScope}\n\n3. PRAZO\n${briefingDeadline}\n\n4. INVESTIMENTO TOTAL\n${half.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} × 2 parcelas (50/50)\nTotal: ${(half * 2).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`;
-
-  const osText = `ORDEM DE SERVIÇO — ${projectName.toUpperCase()}\n\nCONTRATANTE: ${clientName} · ${clientDoc}\nCONTRATADO: Jordan Diaz · MEI\n\nESCOPO DE SERVIÇO\n${osScope}\n\nCONDIÇÕES\n- Início: mediante pagamento da 1ª parcela (50%).\n- Revisões incluídas: 2 rodadas por marco entregue.\n- Prazo: ${briefingDeadline}.\n\nVALOR\nTotal: ${(half * 2).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\nForma: 50% no aceite · 50% na entrega final.\n\n${today} — Jordan Diaz`;
-
-  const recibo1 = `RECIBO Nº 001/2 — SINAL 50%\n\nRecebi de ${clientName} (${clientDoc}) a importância de\n${half.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\nreferente à 1ª parcela do projeto "${projectName}", como sinal para início dos trabalhos.\n\nData: ${today}\n_____________________________________\nJordan Diaz · MEI`;
-
-  const recibo2 = `RECIBO Nº 002/2 — QUITAÇÃO FINAL 50%\n\nRecebi de ${clientName} (${clientDoc}) a importância de\n${half.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\nreferente à 2ª e última parcela do projeto "${projectName}", dando total quitação.\n\nData: ${today}\n_____________________________________\nJordan Diaz · MEI`;
-
-  const copy = (txt: string, label: string) => { navigator.clipboard.writeText(txt).then(() => toast.success(`${label} copiado`), () => toast.error("Falha ao copiar")); };
-  const download = (txt: string, filename: string) => { const blob = new Blob([txt], { type: "text/plain;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); toast.success(`${filename} baixado`); };
-
-  const tabs: { id: DocTab; label: string; icon: typeof FileText; tone: string }[] = [
-    { id: "briefing", label: "Briefing", icon: FileText, tone: "text-cyan-glow" },
-    { id: "os", label: "Ordem de Serviço", icon: ClipboardList, tone: "text-violet-glow" },
-    { id: "recibos", label: "Recibos 50/50", icon: Receipt, tone: "text-emerald-glow" },
-  ];
-
-  return (
-    <section className="px-8 pb-10">
-      <Card>
-        <CardHeader>
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-mono text-[10px] uppercase tracking-widest text-cyan-glow">Documentos do projeto</p>
-              <CardTitle className="text-display text-xl">Central de contratos e recibos</CardTitle>
-            </div>
-            <div className="flex gap-1 rounded-xl border border-hairline bg-(--surface-2) p-1">
-              {tabs.map((t) => {
-                const Icon = t.icon;
-                const active = tab === t.id;
-                return (
-                  <button key={t.id} onClick={() => setTab(t.id)} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${active ? `bg-(--surface-0) ${t.tone}` : "text-muted-foreground hover:text-foreground"}`}>
-                    <Icon size={12} /> {t.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cliente</span><input value={clientName} onChange={(e) => setClientName(e.target.value)} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-            <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Documento</span><input value={clientDoc} onChange={(e) => setClientDoc(e.target.value)} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-          </div>
-
-          {tab === "briefing" && (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              <div className="flex flex-col gap-3">
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Objetivo de negócio</span><textarea value={briefingGoal} onChange={(e) => setBriefingGoal(e.target.value)} rows={3} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo</span><textarea value={briefingScope} onChange={(e) => setBriefingScope(e.target.value)} rows={3} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Prazo</span><input value={briefingDeadline} onChange={(e) => setBriefingDeadline(e.target.value)} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-cyan-glow" /></label>
-              </div>
-              <DocPreview text={briefingText} onCopy={() => copy(briefingText, "Briefing")} onDownload={() => download(briefingText, `briefing-${projectName}.txt`)} tone="cyan" />
-            </div>
-          )}
-
-          {tab === "os" && (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              <div className="flex flex-col gap-3">
-                <label className="flex flex-col gap-1"><span className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo executivo da OS</span><textarea value={osScope} onChange={(e) => setOsScope(e.target.value)} rows={6} className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-sm outline-none focus:border-violet-glow" /></label>
-                <div className="rounded-md border border-hairline bg-(--surface-2) px-3 py-2 text-xs text-muted-foreground">Valor total: R$ {(half * 2).toLocaleString("pt-BR")} · Parcelas 50/50 de R$ {half.toLocaleString("pt-BR")}</div>
-              </div>
-              <DocPreview text={osText} onCopy={() => copy(osText, "Ordem de Serviço")} onDownload={() => download(osText, `os-${projectName}.txt`)} tone="violet" />
-            </div>
-          )}
-
-          {tab === "recibos" && (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              <DocPreview title="1ª parcela · Sinal 50%" text={recibo1} onCopy={() => copy(recibo1, "Recibo 1")} onDownload={() => download(recibo1, `recibo-1-${projectName}.txt`)} tone="emerald" />
-              <DocPreview title="2ª parcela · Quitação 50%" text={recibo2} onCopy={() => copy(recibo2, "Recibo 2")} onDownload={() => download(recibo2, `recibo-2-${projectName}.txt`)} tone="emerald" />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </section>
-  );
-}
-
-function DocPreview({ text, onCopy, onDownload, tone, title }: { text: string; onCopy: () => void; onDownload: () => void; tone: "cyan" | "violet" | "emerald"; title?: string }) {
-  const toneClass = tone === "cyan" ? "border-cyan-glow/30 text-cyan-glow" : tone === "violet" ? "border-violet-glow/30 text-violet-glow" : "border-emerald-glow/30 text-emerald-glow";
-  return (
-    <div className={`flex flex-col rounded-xl border bg-(--surface-0) ${toneClass}`}>
-      <div className="flex items-center justify-between border-b border-hairline px-4 py-2">
-        <p className="text-mono text-[10px] uppercase tracking-widest">{title ?? "Preview do documento"}</p>
-        <div className="flex gap-1">
-          <Button variant="outline" size="sm" onClick={onCopy}><Copy size={11} /> Copiar</Button>
-          <Button variant="outline" size="sm" onClick={onDownload}><Download size={11} /> .txt</Button>
-        </div>
-      </div>
-      <pre className="max-h-105 overflow-auto whitespace-pre-wrap px-4 py-3 text-mono text-[12px] leading-relaxed text-foreground/90">{text}</pre>
-    </div>
-  );
-}

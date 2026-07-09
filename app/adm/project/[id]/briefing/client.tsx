@@ -31,18 +31,6 @@ function isSameDay(a: string, b: string) {
   return new Date(a).toDateString() === new Date(b).toDateString();
 }
 
-function isSameMinute(a: string, b: string) {
-  const da = new Date(a);
-  const db = new Date(b);
-  return (
-    da.getFullYear() === db.getFullYear() &&
-    da.getMonth() === db.getMonth() &&
-    da.getDate() === db.getDate() &&
-    da.getHours() === db.getHours() &&
-    da.getMinutes() === db.getMinutes()
-  );
-}
-
 const avatarColors = [
   "bg-emerald-500",
   "bg-violet-500",
@@ -75,6 +63,10 @@ export function BriefingClient({
   }, []);
 
   useEffect(() => {
+    setNotes(initialNotes);
+  }, [initialNotes]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [notes, scrollToBottom]);
 
@@ -87,6 +79,7 @@ export function BriefingClient({
       setContent("");
       router.refresh();
     } catch {
+    } finally {
       setSending(false);
     }
   }
@@ -109,21 +102,14 @@ export function BriefingClient({
   function renderMessages() {
     const elements: React.ReactNode[] = [];
     let lastDate = "";
-    let lastTime = "";
-    let lastAuthor = "";
 
     for (let i = 0; i < notes.length; i++) {
       const note = notes[i];
       const noteDate = formatDate(note.createdAt);
       const author = note.authorName || userName;
-      const prevNote = i > 0 ? notes[i - 1] : null;
-      const prevAuthor = prevNote ? prevNote.authorName || userName : "";
-      const prevCreatedAt = prevNote ? prevNote.createdAt : "";
 
       if (!isSameDay(note.createdAt, lastDate || note.createdAt)) {
         lastDate = note.createdAt;
-        lastTime = "";
-        lastAuthor = "";
         elements.push(
           <div key={`divider-${note.id}`} className="flex items-center gap-3 py-4">
             <div className="h-px flex-1 bg-hairline" />
@@ -133,47 +119,27 @@ export function BriefingClient({
         );
       }
 
-      const sameAuthor = author === prevAuthor && prevCreatedAt && isSameMinute(note.createdAt, prevCreatedAt);
-
-      if (sameAuthor) {
-        elements.push(
-          <div key={note.id} className="group ml-[68px] flex items-start gap-4 px-4 hover:bg-(--surface-1/50)">
-            <div className="w-[36px] shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">
-                {note.content}
-              </p>
+      const avatarColor = getAvatarColor(author);
+      elements.push(
+        <div key={note.id} className="group flex items-start gap-3 px-4 pt-2 hover:bg-(--surface-1/50)">
+          <div
+            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${avatarColor}`}
+          >
+            {author.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold text-foreground hover:underline cursor-pointer">
+                {author}
+              </span>
+              <span className="text-[10px] text-muted-foreground">{formatTime(note.createdAt)}</span>
             </div>
-            <span className="mt-0.5 shrink-0 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">
-              {formatTime(note.createdAt)}
-            </span>
-          </div>,
-        );
-      } else {
-        const avatarColor = getAvatarColor(author);
-        lastAuthor = author;
-        lastTime = note.createdAt;
-        elements.push(
-          <div key={note.id} className="group flex items-start gap-4 px-4 pt-2 hover:bg-(--surface-1/50)">
-            <div
-              className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${avatarColor}`}
-            >
-              {author.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2">
-                <span className="text-sm font-semibold text-foreground hover:underline cursor-pointer">
-                  {author}
-                </span>
-                <span className="text-[10px] text-muted-foreground">{formatTime(note.createdAt)}</span>
-              </div>
-              <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">
-                {note.content}
-              </p>
-            </div>
-          </div>,
-        );
-      }
+            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">
+              {note.content}
+            </p>
+          </div>
+        </div>,
+      );
     }
 
     return elements;
