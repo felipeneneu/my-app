@@ -60,6 +60,33 @@ async function generatePixPayload(key: string, keyType: string, merchantName: st
   return `${crcPart}${crc}`;
 }
 
+function applyCpfMask(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+}
+
+function applyCnpjMask(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 14);
+  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+}
+
+function applyCpfCnpjMask(raw: string) {
+  const d = raw.replace(/\D/g, "");
+  if (d.length <= 11) return applyCpfMask(d);
+  return applyCnpjMask(d);
+}
+
+function applyCepMask(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  return d.replace(/^(\d{5})(\d{3})$/, "$1-$2");
+}
+
+function applyPhoneMask(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 10) return d.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+  return d.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+}
+
 function crc16(str: string): string {
   let crc = 0xffff;
   for (let i = 0; i < str.length; i++) {
@@ -92,6 +119,8 @@ export function CompanyClient({ company }: { company: Company | null }) {
   const [bankAccount, setBankAccount] = useState(company?.bankAccount ?? "");
   const [pixKey, setPixKey] = useState(company?.pixKey ?? "");
   const [pixKeyType, setPixKeyType] = useState<"cpf" | "cnpj" | "email" | "phone" | "random">(company?.pixKeyType ?? "random");
+  const documentDigits = document.replace(/\D/g, "");
+  const isCnpj = documentDigits.length === 14;
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -161,9 +190,9 @@ export function CompanyClient({ company }: { company: Company | null }) {
     const fd = new FormData();
     fd.set("tradingName", tradingName);
     fd.set("legalName", legalName);
-    fd.set("document", document);
+    fd.set("document", document.replace(/\D/g, ""));
     fd.set("stateRegistration", stateRegistration);
-    fd.set("cep", cep);
+    fd.set("cep", cep.replace(/\D/g, ""));
     fd.set("street", street);
     fd.set("number", number);
     fd.set("complement", complement);
@@ -241,13 +270,22 @@ export function CompanyClient({ company }: { company: Company | null }) {
                   <Input value={legalName} onChange={(e) => setLegalName(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
                 </div>
                 <div>
-                  <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">CNPJ / CPF</Label>
-                  <Input value={document} onChange={(e) => setDocument(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+                  <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {isCnpj ? "CNPJ" : "CPF"}
+                  </Label>
+                  <Input
+                    value={document}
+                    onChange={(e) => setDocument(applyCpfCnpjMask(e.target.value))}
+                    className="mt-1 border-hairline bg-(--surface-2)"
+                    placeholder={isCnpj ? "00.000.000/0000-00" : "000.000.000-00"}
+                  />
                 </div>
-                <div>
-                  <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Inscrição Estadual</Label>
-                  <Input value={stateRegistration} onChange={(e) => setStateRegistration(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
-                </div>
+                {isCnpj && (
+                  <div>
+                    <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Inscrição Estadual</Label>
+                    <Input value={stateRegistration} onChange={(e) => setStateRegistration(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -262,7 +300,7 @@ export function CompanyClient({ company }: { company: Company | null }) {
             <div className="relative">
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">CEP</Label>
               <div className="relative mt-1">
-                <Input value={cep} onChange={(e) => setCep(e.target.value)} className="border-hairline bg-(--surface-2) pr-8" placeholder="00000-000" />
+                <Input value={cep} onChange={(e) => setCep(applyCepMask(e.target.value))} className="border-hairline bg-(--surface-2) pr-8" placeholder="00000-000" />
                 {cepLoading && (
                   <Loader2 size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
                 )}
@@ -294,7 +332,7 @@ export function CompanyClient({ company }: { company: Company | null }) {
             </div>
             <div className="col-span-2">
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Telefone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+              <Input value={phone} onChange={(e) => setPhone(applyPhoneMask(e.target.value))} className="mt-1 border-hairline bg-(--surface-2)" placeholder="(00) 00000-0000" />
             </div>
             <div className="col-span-2">
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">E-mail</Label>
