@@ -229,7 +229,8 @@ export function CompanyClient({ company }: { company: Company | null }) {
           </p>
         </div>
         <Button size="sm" onClick={handleSubmit} disabled={loading}>
-          <Save size={14} /> {loading ? "Salvando..." : "Salvar"}
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {loading ? "Salvando..." : "Salvar"}
         </Button>
       </header>
 

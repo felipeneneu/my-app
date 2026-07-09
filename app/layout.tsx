@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 };
 
 import { QueryProvider } from "@/components/QueryProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,
@@ -34,6 +35,7 @@ export default function RootLayout({
     >
       <body className="h-screen w-full overflow-hidden">
         <QueryProvider>{children}</QueryProvider>
+        <Toaster richColors closeButton />
       </body>
     </html>
   );
