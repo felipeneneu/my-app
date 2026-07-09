@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, Upload, Banknote, QrCode, Check, Save } from "lucide-react";
+import { ArrowLeft, Building2, Upload, Banknote, QrCode, Check, Save, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -93,8 +93,40 @@ export function CompanyClient({ company }: { company: Company | null }) {
   const [pixKey, setPixKey] = useState(company?.pixKey ?? "");
   const [pixKeyType, setPixKeyType] = useState<"cpf" | "cnpj" | "email" | "phone" | "random">(company?.pixKeyType ?? "random");
   const [loading, setLoading] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cepTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const fetchAddressByCep = useCallback(async (raw: string) => {
+    const cleaned = raw.replace(/\D/g, "");
+    if (cleaned.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleaned}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
+      }
+      setStreet(data.logradouro ?? "");
+      setNeighborhood(data.bairro ?? "");
+      setCity(data.localidade ?? "");
+      setState(data.uf ?? "");
+    } catch {
+      toast.error("Erro ao buscar CEP");
+    } finally {
+      setCepLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cepTimeoutRef.current) clearTimeout(cepTimeoutRef.current);
+    cepTimeoutRef.current = setTimeout(() => fetchAddressByCep(cep), 600);
+    return () => {
+      if (cepTimeoutRef.current) clearTimeout(cepTimeoutRef.current);
+    };
+  }, [cep, fetchAddressByCep]);
 
   const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -227,17 +259,22 @@ export function CompanyClient({ company }: { company: Company | null }) {
             <CardTitle className="text-display text-xl">Localização</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="relative">
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">CEP</Label>
-              <Input value={cep} onChange={(e) => setCep(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+              <div className="relative mt-1">
+                <Input value={cep} onChange={(e) => setCep(e.target.value)} className="border-hairline bg-(--surface-2) pr-8" placeholder="00000-000" />
+                {cepLoading && (
+                  <Loader2 size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
+              </div>
             </div>
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Estado</Label>
-              <Input value={state} onChange={(e) => setState(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+              <Input value={state} onChange={(e) => setState(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" readOnly={cepLoading} />
             </div>
             <div className="col-span-2">
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Logradouro</Label>
-              <Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+              <Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" readOnly={cepLoading} />
             </div>
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Número</Label>
@@ -249,11 +286,11 @@ export function CompanyClient({ company }: { company: Company | null }) {
             </div>
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Bairro</Label>
-              <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+              <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" readOnly={cepLoading} />
             </div>
             <div>
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cidade</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" />
+              <Input value={city} onChange={(e) => setCity(e.target.value)} className="mt-1 border-hairline bg-(--surface-2)" readOnly={cepLoading} />
             </div>
             <div className="col-span-2">
               <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Telefone</Label>
