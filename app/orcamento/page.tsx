@@ -15,7 +15,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ReactNode } from "react";
 import { getClients } from "@/lib/actions/clients";
 import { getCompany } from "@/lib/actions/company";
+import { getProducts } from "@/lib/actions/products";
+import type { Product } from "@/lib/actions/products";
 
+
+type BudgetItem = {
+  id: string;
+  productId: string | null;
+  name: string;
+  estimatedHours: number;
+  materialCost: number;
+  quantity: number;
+};
 
 const PROJECT_TYPES = [
   { id: "landing", label: "Landing Page" },
@@ -63,9 +74,71 @@ export default function Quotations() {
     "Vamos entregar uma presença digital clara e comercial: uma landing page focada em conversão, um sistema de gestão online e um painel administrativo simples para acompanhar leads e clientes ativos."
   );
 
-  const [priceStrategy, setPriceStrategy] = useState(4800);
-  const [priceDesign, setPriceDesign] = useState(6200);
-  const [priceDev, setPriceDev] = useState(9800);
+  const [items, setItems] = useState<BudgetItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [showProductSearch, setShowProductSearch] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const productSearchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getProducts().then(setProducts).catch(() => {});
+  }, []);
+
+  function addItem(product?: Product) {
+    const id = crypto.randomUUID();
+    if (product) {
+      setItems(prev => [...prev, {
+        id,
+        productId: product.id,
+        name: product.name,
+        estimatedHours: product.estimatedHours,
+        materialCost: product.materialCost,
+        quantity: 1,
+      }]);
+    } else {
+      setItems(prev => [...prev, {
+        id,
+        productId: null,
+        name: "",
+        estimatedHours: 0,
+        materialCost: 0,
+        quantity: 1,
+      }]);
+    }
+  }
+
+  function updateItem(id: string, field: keyof BudgetItem, value: string | number) {
+    setItems(prev => prev.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  }
+
+  function removeItem(id: string) {
+    setItems(prev => prev.filter(item => item.id !== id));
+  }
+
+  const total = useMemo(() =>
+    items.reduce((sum, item) => {
+      const itemPrice = (item.estimatedHours * 125) + item.materialCost;
+      return sum + (itemPrice * item.quantity);
+    }, 0),
+    [items]
+  );
+
+  const totalHours = useMemo(() =>
+    items.reduce((sum, item) => sum + (item.estimatedHours * item.quantity), 0),
+    [items]
+  );
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
+        setShowProductSearch(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
 
   const [weeks, setWeeks] = useState(9);
@@ -86,7 +159,6 @@ export default function Quotations() {
     setOpenCards(prev => ({ ...prev, [key]: !prev[key] }));
   }
 
-  const total = priceStrategy + priceDesign + priceDev;
   const avista = Math.round(total * 0.9);
   const sinal = Math.round(total * 0.4);
   const parcela = Math.round((total - sinal) / 2);
@@ -372,14 +444,14 @@ export default function Quotations() {
             )}
           </div>
 
-          {/* Prices */}
+          {/* Itens do Orçamento */}
           <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)]">
             <button
               onClick={() => toggleCard("pricing")}
               className="flex w-full items-center justify-between p-5"
             >
               <p className="text-mono text-[10px] uppercase tracking-widest text-violet-glow">
-                Investimento por etapa
+                Itens do Orçamento
               </p>
               <ChevronDown
                 size={14}
@@ -387,18 +459,122 @@ export default function Quotations() {
               />
             </button>
             {openCards.pricing && (
-              <div className="px-5 pb-5">
-                <div className="grid grid-cols-1 gap-3">
-              <PriceField label="Estratégia / Descoberta" value={priceStrategy} onChange={setPriceStrategy} />
-              <PriceField label="UI/UX Design" value={priceDesign} onChange={setPriceDesign} />
-              <PriceField label="Desenvolvimento Web" value={priceDev} onChange={setPriceDev} />
-            </div>
-            <div className="mt-4 flex items-baseline justify-between border-t border-hairline pt-3">
-              <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                Total
-              </p>
-              <p className="text-display text-2xl text-emerald-glow">{formatBRL(total)}</p>
-            </div>
+              <div className="space-y-3 px-5 pb-5">
+                {items.map((item) => {
+                  const itemPrice = (item.estimatedHours * 125) + item.materialCost;
+                  return (
+                    <div key={item.id} className="rounded-lg border border-hairline bg-[color:var(--surface-2)] p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <input
+                            value={item.name}
+                            onChange={(e) => updateItem(item.id, "name", e.target.value)}
+                            placeholder="Nome do item"
+                            className="w-full bg-transparent text-sm font-medium outline-none"
+                          />
+                        </div>
+                        <button onClick={() => removeItem(item.id)} className="shrink-0 text-muted-foreground hover:text-red-400">
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        <div>
+                          <Label className="text-mono text-[9px] uppercase text-muted-foreground">Horas</Label>
+                          <input
+                            type="number"
+                            value={item.estimatedHours}
+                            onChange={(e) => updateItem(item.id, "estimatedHours", Number(e.target.value) || 0)}
+                            className="mt-0.5 w-full rounded border border-hairline bg-[color:var(--surface-1)] px-2 py-1 text-xs outline-none"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-mono text-[9px] uppercase text-muted-foreground">Custo mat.</Label>
+                          <input
+                            type="number"
+                            value={item.materialCost}
+                            onChange={(e) => updateItem(item.id, "materialCost", Number(e.target.value) || 0)}
+                            className="mt-0.5 w-full rounded border border-hairline bg-[color:var(--surface-1)] px-2 py-1 text-xs outline-none"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-mono text-[9px] uppercase text-muted-foreground">Qtd</Label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={item.quantity}
+                            onChange={(e) => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value) || 1))}
+                            className="mt-0.5 w-full rounded border border-hairline bg-[color:var(--surface-1)] px-2 py-1 text-xs outline-none"
+                          />
+                        </div>
+                      </div>
+                      <p className="mt-1 text-right text-xs font-semibold text-emerald-glow">
+                        {formatBRL(itemPrice * item.quantity)}
+                      </p>
+                    </div>
+                  );
+                })}
+
+                {items.length === 0 && (
+                  <p className="text-center text-[11px] text-muted-foreground py-4">
+                    Nenhum item adicionado
+                  </p>
+                )}
+
+                <div className="flex gap-2" ref={productSearchRef}>
+                  <div className="relative flex-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start gap-1.5 text-xs"
+                      onClick={() => setShowProductSearch(!showProductSearch)}
+                    >
+                      <Search size={12} />
+                      Adicionar produto
+                    </Button>
+                    {showProductSearch && (
+                      <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-hairline bg-[color:var(--surface-1)] shadow-lg">
+                        <div className="p-1">
+                          <Input
+                            value={productSearch}
+                            onChange={(e) => setProductSearch(e.target.value)}
+                            placeholder="Buscar produto..."
+                            className="mb-1 border-hairline bg-[color:var(--surface-2)] text-xs"
+                          />
+                          <div className="max-h-40 overflow-y-auto">
+                            {products
+                              .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                              .map((p) => (
+                                <button
+                                  key={p.id}
+                                  onClick={() => { addItem(p); setShowProductSearch(false); setProductSearch(""); }}
+                                  className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-xs hover:bg-[color:var(--surface-2)]"
+                                >
+                                  <span className="font-medium">{p.name}</span>
+                                  <span className="text-muted-foreground">{p.category}</span>
+                                </button>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => addItem()} className="text-xs gap-1">
+                    <Sparkles size={12} />
+                    Item avulso
+                  </Button>
+                </div>
+
+                <div className="flex items-baseline justify-between border-t border-hairline pt-3">
+                  <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                    Total
+                  </p>
+                  <p className="text-display text-2xl text-emerald-glow">{formatBRL(total)}</p>
+                </div>
+                {totalHours > 0 && (
+                  <p className="text-right text-[10px] text-muted-foreground">
+                    {totalHours}h totais · Média R$ {Math.round(total / totalHours)}/h
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -765,9 +941,12 @@ export default function Quotations() {
                 </p>
 
                 <div className="mt-8 flex flex-col gap-2 text-[15px]">
-                  <InvestRow label="Estratégia de produto" value={priceStrategy} />
-                  <InvestRow label="UI/UX Design" value={priceDesign} />
-                  <InvestRow label="Desenvolvimento web" value={priceDev} />
+                  {items.map((item) => {
+                    const itemPrice = (item.estimatedHours * 125) + item.materialCost;
+                    return (
+                      <InvestRow key={item.id} label={item.name} value={itemPrice * item.quantity} />
+                    );
+                  })}
                   <div className="mt-2 flex items-baseline justify-between border-t-2 border-neutral-900 pt-3">
                     <span className="text-lg font-black uppercase">Total</span>
                     <span className="text-display text-2xl font-black">
