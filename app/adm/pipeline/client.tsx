@@ -9,7 +9,6 @@ import {
   updatePipelineStage,
   logContact,
   deletePipelineLead,
-  convertToClient,
   type PipelineLead,
   type PipelineStats,
 } from "@/lib/actions/pipeline";
@@ -22,12 +21,11 @@ import {
   Phone,
   Mail,
   Trash2,
-  UserCheck,
   StickyNote,
   GripVertical,
-  PartyPopper,
-  Trophy,
-  ExternalLink,
+  Copy,
+  Check,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +49,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, applyPhoneMask } from "@/lib/utils";
 import {
   DndContext,
   DragOverlay,
@@ -117,9 +115,17 @@ function timeAgo(iso: string | null): string {
   return `${months} mês atrás`;
 }
 
-function getWhatsAppUrl(phone: string): string {
+function generateWhatsAppMessage(businessName: string): string {
+  return `Olá ${businessName}! Tudo bem? Aqui é o Felipe. Vi o trabalho de vocês e fiquei interessado em saber se estão abertos a novas parcerias. Será que podemos conversar um pouco? Aguardo seu retorno!`;
+}
+
+function getWhatsAppUrl(phone: string, message?: string): string {
   const digits = phone.replace(/\D/g, "");
-  return `https://wa.me/55${digits}`;
+  const url = `https://wa.me/55${digits}`;
+  if (message) {
+    return `${url}?text=${encodeURIComponent(message)}`;
+  }
+  return url;
 }
 
 const columnColor: Record<ColumnKey, string> = {
@@ -143,14 +149,14 @@ function DraggableCard({
   column,
   onMove,
   onContact,
-  onConvert,
+  onMessage,
   onDelete,
 }: {
   lead: PipelineLead;
   column: ColumnKey;
   onMove: (id: string, col: ColumnKey, dir: "prev" | "next") => void;
   onContact: (id: string) => void;
-  onConvert: (lead: PipelineLead) => void;
+  onMessage: (lead: PipelineLead) => void;
   onDelete: (id: string, name: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -222,14 +228,23 @@ function DraggableCard({
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5 ml-7">
             {lead.phone && (
-              <a
-                href={getWhatsAppUrl(lead.phone)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-emerald-glow hover:brightness-110"
-              >
-                <MessageCircle size={11} /> WhatsApp
-              </a>
+              <>
+                <a
+                  href={getWhatsAppUrl(lead.phone, generateWhatsAppMessage(lead.businessName))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-emerald-glow hover:brightness-110"
+                >
+                  <MessageCircle size={11} /> WhatsApp
+                </a>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+                  onClick={() => onMessage(lead)}
+                >
+                  <Sparkles size={11} /> Mensagem
+                </button>
+              </>
             )}
             <button
               type="button"
@@ -238,15 +253,6 @@ function DraggableCard({
             >
               <StickyNote size={11} /> Log
             </button>
-            {column === "won" && (
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-emerald-glow hover:brightness-110"
-                onClick={() => onConvert(lead)}
-              >
-                <UserCheck size={11} /> Cliente
-              </button>
-            )}
             <ConfirmDialog
               title="Remover lead"
               description={`Deletar "${lead.businessName}" permanentemente?`}
@@ -272,7 +278,7 @@ function DroppableColumn({
   leads,
   onMove,
   onContact,
-  onConvert,
+  onMessage,
   onDelete,
   isOver,
 }: {
@@ -280,7 +286,7 @@ function DroppableColumn({
   leads: PipelineLead[];
   onMove: (id: string, col: ColumnKey, dir: "prev" | "next") => void;
   onContact: (id: string) => void;
-  onConvert: (lead: PipelineLead) => void;
+  onMessage: (lead: PipelineLead) => void;
   onDelete: (id: string, name: string) => void;
   isOver: boolean;
 }) {
@@ -316,13 +322,121 @@ function DroppableColumn({
               column={column.key}
               onMove={onMove}
               onContact={onContact}
-              onConvert={onConvert}
+              onMessage={onMessage}
               onDelete={onDelete}
             />
           ))
         )}
       </div>
     </div>
+  );
+}
+
+function WhatsAppMessageDialog({
+  open,
+  onOpenChange,
+  businessName,
+  phone,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  businessName: string;
+  phone: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const message = generateWhatsAppMessage(businessName);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(message);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mensagem de prospecção</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="rounded-lg border border-hairline bg-(--surface-2) p-4 text-sm leading-relaxed">
+            {message}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleCopy} variant="outline" size="sm">
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "Copiado!" : "Copiar mensagem"}
+            </Button>
+            <a
+              href={getWhatsAppUrl(phone, message)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => onOpenChange(false)}
+            >
+              <Button size="sm">
+                <MessageCircle size={14} /> Abrir WhatsApp
+              </Button>
+            </a>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CelebrationDialog({
+  open,
+  onOpenChange,
+  result,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  result: {
+    clientName: string;
+    xpGained: number;
+    goldGained: number;
+    leveledUp: boolean;
+    newLevel: number | null;
+  } | null;
+}) {
+  if (!result) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-glow">
+            <Sparkles size={20} /> Cliente conquistado!
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 py-4 text-center">
+          <p className="text-lg font-semibold">{result.clientName}</p>
+          <p className="text-sm text-muted-foreground">
+            Lead convertido em cliente com sucesso!
+          </p>
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-center">
+              <span className="text-2xl font-bold text-amber-glow">+{result.xpGained}</span>
+              <span className="text-[11px] text-muted-foreground">XP</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-2xl font-bold text-yellow-500">+{result.goldGained}</span>
+              <span className="text-[11px] text-muted-foreground">Gold</span>
+            </div>
+          </div>
+          {result.leveledUp && (
+            <p className="text-sm text-sky-glow font-semibold">
+              Level Up! Agora nível {result.newLevel}
+            </p>
+          )}
+          <Link href={`/adm/clients`}>
+            <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
+              Ver clientes
+            </Button>
+          </Link>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -339,20 +453,19 @@ export function PipelineClient({
   const [contactLeadId, setContactLeadId] = useState<string | null>(null);
   const [contactNote, setContactNote] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [convertConfirmOpen, setConvertConfirmOpen] = useState(false);
-  const [convertResultDialogOpen, setConvertResultDialogOpen] = useState(false);
-  const [convertLeadId, setConvertLeadId] = useState<string | null>(null);
-  const [convertLeadName, setConvertLeadName] = useState("");
-  const [convertLeadEmail, setConvertLeadEmail] = useState("");
-  const [convertLeadPhone, setConvertLeadPhone] = useState("");
-  const [convertResult, setConvertResult] = useState<{
+
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [messageLeadName, setMessageLeadName] = useState("");
+  const [messageLeadPhone, setMessageLeadPhone] = useState("");
+
+  const [celebrateDialogOpen, setCelebrateDialogOpen] = useState(false);
+  const [celebrateResult, setCelebrateResult] = useState<{
     clientName: string;
     xpGained: number;
     goldGained: number;
     leveledUp: boolean;
     newLevel: number | null;
   } | null>(null);
-  const [converting, setConverting] = useState(false);
 
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -389,12 +502,14 @@ export function PipelineClient({
     e.preventDefault();
     if (!businessName.trim()) return;
     setLoading(true);
-    await createPipelineLead({
+    const created = await createPipelineLead({
       businessName: businessName.trim(),
       email,
       phone,
       pipelineStage: initialStage,
     });
+    const createdPhone = created?.phone ?? "";
+    const createdName = created?.businessName ?? "";
     setBusinessName("");
     setEmail("");
     setPhone("");
@@ -404,16 +519,40 @@ export function PipelineClient({
     queryClient.invalidateQueries({ queryKey: ["pipeline-leads"] });
     queryClient.invalidateQueries({ queryKey: ["pipeline-stats"] });
     toast.success("Lead adicionado ao pipeline");
+
+    if (createdPhone) {
+      setMessageLeadName(createdName);
+      setMessageLeadPhone(createdPhone);
+      setMessageDialogOpen(true);
+    }
+  }
+
+  function showMessageDialog(lead: PipelineLead) {
+    if (!lead.phone) return;
+    setMessageLeadName(lead.businessName);
+    setMessageLeadPhone(lead.phone);
+    setMessageDialogOpen(true);
   }
 
   async function handleMove(id: string, column: ColumnKey, direction: "prev" | "next") {
     const target =
       direction === "next" ? getNextStage(column) : getPrevStage(column);
     if (!target) return;
-    await updatePipelineStage(id, target);
+    const result = await updatePipelineStage(id, target);
     queryClient.invalidateQueries({ queryKey: ["pipeline-leads"] });
     queryClient.invalidateQueries({ queryKey: ["pipeline-stats"] });
-    toast.success("Lead movido");
+    if (result?.converted) {
+      setCelebrateResult({
+        clientName: result.clientName,
+        xpGained: result.xpGained,
+        goldGained: result.goldGained,
+        leveledUp: result.leveledUp,
+        newLevel: result.newLevel,
+      });
+      setCelebrateDialogOpen(true);
+    } else {
+      toast.success("Lead movido");
+    }
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -431,10 +570,21 @@ export function PipelineClient({
 
     if (!targetColumn || !currentColumn || targetColumn === currentColumn) return;
 
-    await updatePipelineStage(leadId, targetColumn);
+    const result = await updatePipelineStage(leadId, targetColumn);
     queryClient.invalidateQueries({ queryKey: ["pipeline-leads"] });
     queryClient.invalidateQueries({ queryKey: ["pipeline-stats"] });
-    toast.success("Lead movido");
+    if (result?.converted) {
+      setCelebrateResult({
+        clientName: result.clientName,
+        xpGained: result.xpGained,
+        goldGained: result.goldGained,
+        leveledUp: result.leveledUp,
+        newLevel: result.newLevel,
+      });
+      setCelebrateDialogOpen(true);
+    } else {
+      toast.success("Lead movido");
+    }
   }
 
   async function handleContact() {
@@ -452,37 +602,6 @@ export function PipelineClient({
     queryClient.invalidateQueries({ queryKey: ["pipeline-leads"] });
     queryClient.invalidateQueries({ queryKey: ["pipeline-stats"] });
     toast.success(`"${name}" removido`);
-  }
-
-  function handleOpenConvertConfirm(lead: PipelineLead) {
-    setConvertLeadId(lead.id);
-    setConvertLeadName(lead.businessName);
-    setConvertLeadEmail(lead.email ?? "");
-    setConvertLeadPhone(lead.phone ?? "");
-    setConvertConfirmOpen(true);
-  }
-
-  async function handleConfirmConvert() {
-    if (!convertLeadId) return;
-    setConverting(true);
-    setConvertConfirmOpen(false);
-    try {
-      const result = await convertToClient(convertLeadId);
-      setConvertResult({
-        clientName: result.client.name,
-        xpGained: result.xpGained,
-        goldGained: result.goldGained,
-        leveledUp: result.leveledUp,
-        newLevel: result.newLevel,
-      });
-      setConvertResultDialogOpen(true);
-      queryClient.invalidateQueries({ queryKey: ["pipeline-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["pipeline-stats"] });
-    } catch (e) {
-      toast.error("Erro ao converter lead: " + (e instanceof Error ? e.message : "tente novamente"));
-    } finally {
-      setConverting(false);
-    }
   }
 
   return (
@@ -512,7 +631,7 @@ export function PipelineClient({
             </DialogHeader>
             <form onSubmit={handleCreate} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <Label>Nome do negócio *</Label>
+                <Label>Nome do negócio <span className="text-rose-glow">*</span></Label>
                 <Input
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
@@ -532,7 +651,7 @@ export function PipelineClient({
                 <Label>Telefone</Label>
                 <Input
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(applyPhoneMask(e.target.value))}
                   placeholder="(11) 99999-9999"
                 />
               </div>
@@ -576,7 +695,7 @@ export function PipelineClient({
                 setContactLeadId(id);
                 setContactDialogOpen(true);
               }}
-              onConvert={handleOpenConvertConfirm}
+              onMessage={showMessageDialog}
               onDelete={handleDelete}
               isOver={activeId !== null && activeColumn !== col.key}
             />
@@ -620,6 +739,19 @@ export function PipelineClient({
           </div>
         </DialogContent>
       </Dialog>
+
+      <WhatsAppMessageDialog
+        open={messageDialogOpen}
+        onOpenChange={setMessageDialogOpen}
+        businessName={messageLeadName}
+        phone={messageLeadPhone}
+      />
+
+      <CelebrationDialog
+        open={celebrateDialogOpen}
+        onOpenChange={setCelebrateDialogOpen}
+        result={celebrateResult}
+      />
     </>
   );
 }

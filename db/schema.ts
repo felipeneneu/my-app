@@ -7,6 +7,7 @@ export const pipelineStage = ["hot", "warm", "cold"] as const;
 export const projectStatus = ["active", "paused", "completed", "cancelled"] as const;
 export const expenseType = ["fixed", "variable", "software", "infrastructure"] as const;
 export const documentType = ["contract", "invoice", "proposal", "budget", "receipt", "os"] as const;
+export const productCategory = ["branding", "ui-ux", "dev", "consulting", "other"] as const;
 export const taskBlockType = ["deep_focus", "meeting", "deadline"] as const;
 export const notificationType = ["info", "warning", "deadline", "insight", "suggestion", "system"] as const;
 export const notificationPriority = ["low", "medium", "high"] as const;
@@ -42,6 +43,16 @@ export const leads = sqliteTable("leads", {
   notes: text("notes"),
   lastContact: text("last_contact"),
   contactsCount: integer("contacts_count").notNull().default(0),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const products = sqliteTable("products", {
+  id: text("id").primaryKey().$defaultFn(crypto.randomUUID),
+  name: text("name").notNull(),
+  description: text("description"),
+  estimatedHours: integer("estimated_hours").notNull().default(0),
+  materialCost: integer("material_cost").notNull().default(0),
+  category: text("category", { enum: ["branding", "ui-ux", "dev", "consulting", "other"] }).notNull().default("other"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
@@ -293,4 +304,13 @@ export const workspaceConfig = sqliteTable("workspace_config", {
   userInitials: text("user_initials").notNull().default("FN"),
   businessAlias: text("business_alias").notNull().default("Jordan Diaz"),
   monthlyGoal: integer("monthly_goal").notNull().default(15000),
+  proposalDefaultDiscount: integer("proposal_default_discount").notNull().default(10),
+  proposalDownPayment: integer("proposal_down_payment").notNull().default(50),
+  proposalInstallments: integer("proposal_installments").notNull().default(6),
+  proposalSignatureName: text("proposal_signature_name").notNull().default("Felipe Neneu"),
+  proposalSignatureRole: text("proposal_signature_role").notNull().default("Full-Stack Developer & Designer"),
+  proposalSignatureSite: text("proposal_signature_site").notNull().default("www.felipeneneu.com.br"),
+  proposalSignatureEmail: text("proposal_signature_email").notNull().default("contato@felipeneneu.com.br"),
+  proposalSignatureCity: text("proposal_signature_city").notNull().default("São Paulo / SP"),
+  proposalIntroMessage: text("proposal_intro_message").notNull().default("ESTA PROPOSTA É DIVIDIDA EM 3 ETAPAS PRINCIPAIS: BRANDING, DESIGN DE INTERFACE (UI/UX) E DESENVOLVIMENTO TECNOLÓGICO."),
 });

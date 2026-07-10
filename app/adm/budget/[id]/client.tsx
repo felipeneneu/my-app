@@ -4,11 +4,12 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Calculator, Check, Download, Printer, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, Check, Download, Printer, FileText, Link as LinkIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { approveBudget } from "@/lib/actions/budget";
+import { ProposalSlides } from "@/components/ProposalSlides";
+import { generateProposalPdf } from "@/components/proposal-pdf";
 
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
@@ -30,6 +31,10 @@ type CompanyInfo = {
   pixKeyType: string | null;
 };
 
+function isNewProposalFormat(data: any): boolean {
+  return data && data.proposta && data.proposta.capa;
+}
+
 export function BudgetDetailClient({ budget, company }: {
   budget: { id: string; projectId: string | null; contentJson: string };
   company: CompanyInfo | null;
@@ -38,36 +43,115 @@ export function BudgetDetailClient({ budget, company }: {
   const [approving, setApproving] = useState(false);
   const data = (() => { try { return JSON.parse(budget.contentJson); } catch { return {}; } })();
   const isApproved = data.status === "approved";
+  const isNewFormat = isNewProposalFormat(data);
+
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const clientDisplayName = isApproved
+    ? (data.proposta?.capa?.metadados?.cliente ?? data.clientName ?? "Cliente")
+    : (data.clientName ?? "Cliente");
 
   const handleApprove = useCallback(async () => {
     setApproving(true);
     try {
       const result = await approveBudget(budget.id);
-      toast.success("Orçamento aprovado!", { description: `Projeto "${data.clientName}" criado.` });
+      toast.success("Orçamento aprovado!", { description: `Projeto "${clientDisplayName}" criado.` });
       router.push(`/adm/contract/${result.contract.id}`);
     } catch {
       toast.error("Erro ao aprovar orçamento");
     } finally {
       setApproving(false);
     }
-  }, [budget.id, data.clientName, router]);
+  }, [budget.id, clientDisplayName, router]);
 
   const handlePrint = useCallback(() => window.print(), []);
 
+  const handleSendProposal = useCallback(() => {
+    const url = `${window.location.origin}/p/${budget.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("Link copiado!", { description: "Envie para o cliente via WhatsApp ou e-mail." });
+    }).catch(() => {
+      toast.error("Erro ao copiar link");
+    });
+  }, [budget.id]);
+
   const handlePdf = useCallback(async () => {
-    const html2canvas = (await import("html2canvas")).default;
-    const jsPDF = (await import("jspdf")).default;
-    const el = document.getElementById("budget-preview");
-    if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pw = pdf.internal.pageSize.getWidth();
-    const ph = (canvas.height * pw) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pw, ph);
-    pdf.save(`orcamento-${data.clientName || "sem-nome"}.pdf`);
-    toast.success("PDF gerado");
-  }, [data.clientName]);
+    setExportingPdf(true);
+    try {
+      if (isNewFormat) {
+        await generateProposalPdf(data as any, company);
+      } else {
+        const html2canvas = (await import("html2canvas")).default;
+        const jsPDF = (await import("jspdf")).default;
+        const el = document.getElementById("budget-preview");
+        if (!el) return;
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pw = pdf.internal.pageSize.getWidth();
+        const ph = (canvas.height * pw) / canvas.width;
+        pdf.addImage(imgData, "PNG", 0, 0, pw, ph);
+        pdf.save(`orcamento-${data.clientName || "sem-nome"}.pdf`);
+      }
+      toast.success("PDF gerado");
+    } catch {
+      toast.error("Erro ao gerar PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [data, company, isNewFormat]);
+
+  if (isNewFormat) {
+    return (
+      <>
+        <header className="flex items-center justify-between border-b border-hairline px-8 py-4">
+          <div className="flex items-center gap-3">
+            <Link href="/adm/budget" className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground">
+              <ArrowLeft size={12} /> Propostas
+            </Link>
+            <FileText size={16} className="text-emerald-glow" />
+            <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Proposta</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handlePdf} disabled={exportingPdf}>
+              {exportingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exportingPdf ? "Gerando..." : "PDF"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSendProposal}>
+              <LinkIcon size={14} /> Enviar Proposta
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer size={14} /> Imprimir
+            </Button>
+            {!isApproved && (
+              <Button size="sm" onClick={handleApprove} disabled={approving}>
+                <Check size={14} /> {approving ? "Aprovando..." : "Aprovar Proposta"}
+              </Button>
+            )}
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-7xl px-8 py-8">
+          <div id="budget-preview">
+            <ProposalSlides
+              data={data}
+              totalPrice={data.totalPrice}
+              company={company}
+            />
+          </div>
+
+          {isApproved && (
+            <div className="mt-6">
+              <Link href="/adm/contract">
+                <Button variant="outline" className="w-full">
+                  <FileText size={14} /> Ver Contrato Gerado
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -76,14 +160,14 @@ export function BudgetDetailClient({ budget, company }: {
           <Link href="/adm/budget" className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground">
             <ArrowLeft size={12} /> Orçamentos
           </Link>
-          <Calculator size={16} className="text-cyan-glow" />
+          <FileText size={16} className="text-cyan-glow" />
           <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">
             Sprint OS / Orçamento
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handlePdf}>
-            <Download size={14} /> PDF
+          <Button variant="outline" size="sm" onClick={handlePdf} disabled={exportingPdf}>
+            {exportingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exportingPdf ? "Gerando..." : "PDF"}
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer size={14} /> Imprimir

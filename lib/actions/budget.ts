@@ -15,20 +15,7 @@ export async function getBudget(id: string) {
   return db.select().from(documents).where(eq(documents.id, id)).then(r => r[0] ?? null);
 }
 
-export async function createBudget(data: {
-  clientName: string;
-  clientDocument?: string;
-  clientId?: string;
-  scope: string;
-  hours: number;
-  hourlyRate: number;
-  laborCost: number;
-  extraCosts: number;
-  totalPrice: number;
-  estimatedCosts: number;
-  deadline: string;
-  deliverables: string[];
-}) {
+export async function createBudget(data: Record<string, any>) {
   const doc = await db.insert(documents).values({
     projectId: undefined as any,
     type: "budget",
@@ -46,15 +33,20 @@ export async function approveBudget(budgetId: string) {
   const data = JSON.parse(budget.contentJson);
   const updated = { ...data, status: "approved", approvedAt: new Date().toISOString() };
 
+  // Handle both old flat format and new proposal format
+  const isProposal = data.configuracoes_layout !== undefined;
+  const clientName = isProposal ? data.proposta?.capa?.metadados?.cliente ?? "Cliente" : data.clientName;
+  const clientId = isProposal ? data.clientId : (data.clientId || null);
+  const totalPrice = isProposal ? (data.totalPrice ?? 0) : data.totalPrice;
+  const deliverables = isProposal ? [] : (data.deliverables ?? []);
+
   const company = await db.select().from(companyInfo).limit(1).then(r => r[0] ?? null);
 
-  const clientId = data.clientId || null;
-
   const project = await db.insert(projects).values({
-    name: data.clientName,
-    clientName: data.clientName,
+    name: clientName,
+    clientName,
     clientId,
-    price: data.totalPrice,
+    price: Math.round(totalPrice),
     status: "active",
     startDate: new Date().toISOString().split("T")[0],
   }).returning();
@@ -66,17 +58,12 @@ export async function approveBudget(budgetId: string) {
 
   const contractContent = {
     projectId: project[0].id,
-    clientName: data.clientName,
-    clientDocument: data.clientDocument,
-    scope: data.scope,
-    hours: data.hours,
-    hourlyRate: data.hourlyRate,
-    laborCost: data.laborCost,
-    extraCosts: data.extraCosts,
-    totalPrice: data.totalPrice,
-    estimatedCosts: data.estimatedCosts,
-    deadline: data.deadline,
-    deliverables: data.deliverables,
+    clientName,
+    clientDocument: isProposal ? "" : data.clientDocument,
+    totalPrice,
+    deliverables,
+    scope: isProposal ? data.proposta?.etapas?.map((e: any) => e.titulo).join(", ") : data.scope,
+    deadline: data.deadline ?? "30 dias corridos",
     company: company ? {
       tradingName: company.tradingName,
       document: company.document,
@@ -101,7 +88,7 @@ export async function approveBudget(budgetId: string) {
     contentJson: JSON.stringify(updated),
   }).where(eq(documents.id, budgetId));
 
-  await emitNotification("info", "Orçamento aprovado", `Orçamento para "${data.clientName}" aprovado. Contrato e projeto criados.`, "medium");
+  await emitNotification("info", "Orçamento aprovado", `Orçamento para "${clientName}" aprovado. Contrato e projeto criados.`, "medium");
 
   revalidatePath("/adm/budget");
   revalidatePath("/adm/contract");

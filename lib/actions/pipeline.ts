@@ -32,7 +32,7 @@ export async function getPipelineLeads() {
   return db
     .select()
     .from(leads)
-    .where(sql`${leads.pipelineStage} IS NOT NULL OR ${leads.status} IN ('won', 'lost')`)
+    .where(sql`(${leads.pipelineStage} IS NOT NULL) OR (${leads.status} = 'lost')`)
     .orderBy(desc(leads.lastContact)) as Promise<PipelineLead[]>;
 }
 
@@ -98,18 +98,72 @@ export async function updatePipelineStage(
   id: string,
   stage: "hot" | "warm" | "cold" | "won" | "lost"
 ) {
-  if (stage === "won" || stage === "lost") {
+  if (stage === "won") {
+    const lead = await db
+      .select()
+      .from(leads)
+      .where(eq(leads.id, id))
+      .then((r) => r[0]);
+
+    if (!lead) throw new Error("Lead not found");
+
+    if (lead.status === "won") {
+      revalidatePath("/adm/pipeline");
+      return { converted: false as const };
+    }
+
+    const [client] = await db
+      .insert(clients)
+      .values({
+        name: lead.businessName,
+        email: lead.email,
+        phone: lead.phone,
+        notes: lead.notes,
+      })
+      .returning();
+
+    await db
+      .update(leads)
+      .set({ pipelineStage: null, status: "won" })
+      .where(eq(leads.id, id));
+
+    const oldHunter = await db.select().from(hunterStatus).limit(1).then(r => r[0]);
+    const oldLevel = oldHunter?.level ?? 0;
+
+    const XP_GAIN = 100;
+    const GOLD_GAIN = 50;
+    const hunter = await addXp(XP_GAIN);
+    await addGold(GOLD_GAIN);
+
+    revalidatePath("/adm/pipeline");
+    revalidatePath("/adm/clients");
+    revalidatePath("/adm");
+
+    return {
+      converted: true as const,
+      clientName: client.name,
+      xpGained: XP_GAIN,
+      goldGained: GOLD_GAIN,
+      leveledUp: hunter ? hunter.level > oldLevel : false,
+      newLevel: hunter?.level ?? null,
+    };
+  } else if (stage === "lost") {
     await db
       .update(leads)
       .set({ pipelineStage: null, status: stage })
       .where(eq(leads.id, id));
+
+    revalidatePath("/adm/pipeline");
+    return { converted: false as const };
   } else {
     await db
       .update(leads)
       .set({ pipelineStage: stage, status: "new" })
       .where(eq(leads.id, id));
+
+    revalidatePath("/adm/pipeline");
+    return { converted: false as const };
   }
-  revalidatePath("/adm/pipeline");
 }
 
 export async function logContact(id: string, note: string) {

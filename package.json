@@ -19,6 +19,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.4.0",
     "@libsql/client": "^0.17.4",
+    "@react-pdf/renderer": "^4.5.1",
     "@shadcn/react": "^0.2.0",
     "@tanstack/react-query": "^5.101.2",
     "@tursodatabase/database": "^0.6.1",

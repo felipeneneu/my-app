@@ -25,6 +25,7 @@ import {
   Trash2,
   MessageSquare,
   ExternalLink,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -81,6 +82,7 @@ const navGroups: { label: string; items: { icon: typeof LayoutDashboard; label: 
     label: "Comercial",
     items: [
       { icon: Calculator, label: "Orçamento", href: "/adm/budget" },
+      { icon: Package, label: "Produtos", href: "/adm/products" },
       { icon: FileText, label: "Contrato", href: "/adm/contract" },
       { icon: Receipt, label: "Recibo", href: "/adm/receipt" },
     ],

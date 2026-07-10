@@ -1,19 +1,23 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Calculator, Download, Plus, Trash2, X, User, Search,
-  Check, FileSignature, Clock, Building2, Banknote,
+  ArrowLeft, Plus, Trash2, X, User, Search, Check, FileSignature, Save,
+  Calculator, Download, Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createBudget, approveBudget } from "@/lib/actions/budget";
+import { generateProposalPdf } from "@/components/proposal-pdf";
+import type { Product } from "@/lib/actions/products";
+import { ProposalPages } from "@/components/ProposalPages";
+import { ProposalSlides } from "@/components/ProposalSlides";
 
 const HOURS_PER_MONTH = 120;
 
@@ -21,80 +25,301 @@ function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 }
 
-function parseCurrency(raw: string): number {
-  return Number(raw.replace(/[^\d]/g, "")) / 100;
+function formatBRL0(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-function maskCurrency(raw: string): string {
-  const nums = raw.replace(/[^\d]/g, "");
-  const padded = nums.padStart(3, "0");
-  const integer = padded.slice(0, -2);
-  const decimal = padded.slice(-2);
-  return `${Number(integer).toLocaleString("pt-BR")},${decimal}`;
-}
-
-type ClientData = {
-  id: string;
-  name: string;
-  email: string;
-  document: string;
-  notes: string;
-};
-
+type ClientData = { id: string; name: string; email: string; document: string; notes: string };
 type CompanyData = {
-  tradingName: string;
-  document: string;
-  logo: string | null;
-  street: string | null;
-  number: string | null;
-  neighborhood: string | null;
-  city: string | null;
-  state: string | null;
-  bankName: string | null;
-  bankAgency: string | null;
-  bankAccount: string | null;
-  pixKey: string | null;
-  pixKeyType: string | null;
+  tradingName: string; document: string; logo: string | null;
+  street: string | null; number: string | null; neighborhood: string | null;
+  city: string | null; state: string | null; bankName: string | null;
+  bankAgency: string | null; bankAccount: string | null;
+  pixKey: string | null; pixKeyType: string | null;
+};
+type WorkspaceConfigData = {
+  monthlyGoal: number; proposalDefaultDiscount: number; proposalDownPayment: number;
+  proposalInstallments: number; proposalSignatureName: string; proposalSignatureRole: string;
+  proposalSignatureSite: string; proposalSignatureEmail: string; proposalSignatureCity: string;
+  proposalIntroMessage: string;
 };
 
-export function BudgetNewClient({ clients, company, preselectedClientId }: {
+type BudgetItem = {
+  id: string;
+  productId: string | null;
+  name: string;
+  estimatedHours: number;
+  materialCost: number;
+  quantity: number;
+};
+
+export function BudgetNewClient({
+  clients, products, company, preselectedClientId, workspaceConfig,
+}: {
   clients: ClientData[];
+  products: Product[];
   company: CompanyData | null;
   preselectedClientId?: string | null;
+  workspaceConfig: WorkspaceConfigData | null;
 }) {
   const router = useRouter();
+
+  // Client
   const [clientName, setClientName] = useState("");
   const [clientDoc, setClientDoc] = useState("");
+  const [clientCompany, setClientCompany] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [scope, setScope] = useState("");
-  const [metaRaw, setMetaRaw] = useState("15000,00");
-  const [hours, setHours] = useState(40);
-  const [extrasRaw, setExtrasRaw] = useState("0,00");
-  const [estimatedCostsRaw, setEstimatedCostsRaw] = useState("1200,00");
-  const [deadline, setDeadline] = useState("30 dias corridos");
-  const [deliverables, setDeliverables] = useState<string[]>([
-    "Design de interface (UI/UX)",
-    "Desenvolvimento front-end",
-    "Integração de APIs",
-    "Testes e deploy",
-  ]);
-  const [newDeliverable, setNewDeliverable] = useState("");
-  const [saving, setSaving] = useState(false);
-
   const searchRef = useRef<HTMLDivElement>(null);
 
+  // Project
+  const [projectType, setProjectType] = useState("DESENVOLVIMENTO WEB / UI UX DESIGN / IDENTIDADE VISUAL");
+  const [problem, setProblem] = useState("");
+  const [solution, setSolution] = useState(workspaceConfig?.proposalIntroMessage ?? "");
+
+  // Items
+  const [items, setItems] = useState<BudgetItem[]>([]);
+  const [showProductSearch, setShowProductSearch] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [productFilterCat, setProductFilterCat] = useState("all");
+
+  // Per-stage prices (manual overrides)
+  const [priceStrategy, setPriceStrategy] = useState(0);
+  const [priceDesign, setPriceDesign] = useState(0);
+  const [priceDev, setPriceDev] = useState(0);
+
+  // Minimum price validator
+  const [minHours, setMinHours] = useState(48);
+  const [minExtras, setMinExtras] = useState(0);
+
+  // Schedule
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toLocaleDateString("pt-BR");
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 70);
+    return d.toLocaleDateString("pt-BR");
+  });
+  const [weeks, setWeeks] = useState(9);
+
+  // Preview
+  const [previewMode, setPreviewMode] = useState<"pages" | "slides">("pages");
+
+  // Saving
+  const [saving, setSaving] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [budgetId, setBudgetId] = useState<string | null>(null);
+
+  const allProducts = products;
+  const monthlyGoal = workspaceConfig?.monthlyGoal ?? 15000;
+  const hourlyRate = monthlyGoal / HOURS_PER_MONTH;
+
+  // Calculate item summaries
+  const itemSummaries = useMemo(() => items.map(item => {
+    const itemPrice = (item.estimatedHours * hourlyRate) + item.materialCost;
+    return { ...item, unitPrice: itemPrice, totalPrice: itemPrice * item.quantity };
+  }), [items, hourlyRate]);
+
+  const totalHours = itemSummaries.reduce((s, i) => s + i.estimatedHours * i.quantity, 0);
+  const itemsTotalPrice = itemSummaries.reduce((s, i) => s + i.totalPrice, 0);
+
+  // Manual stage prices override itemsTotalPrice when set
+  const manualTotal = priceStrategy + priceDesign + priceDev;
+  const totalPrice = manualTotal > 0 ? manualTotal : itemsTotalPrice;
+
+  // Group items by category
+  const brandingItems = itemSummaries.filter(i => {
+    const p = allProducts.find(ap => ap.id === i.productId);
+    return p?.category === "branding" || i.name.toLowerCase().includes("marca") || i.name.toLowerCase().includes("brand");
+  });
+  const uiuxItems = itemSummaries.filter(i => {
+    const p = allProducts.find(ap => ap.id === i.productId);
+    return p?.category === "ui-ux" || i.name.toLowerCase().includes("ui") || i.name.toLowerCase().includes("ux") || i.name.toLowerCase().includes("design") || i.name.toLowerCase().includes("interface");
+  });
+  const devItems = itemSummaries.filter(i => {
+    const p = allProducts.find(ap => ap.id === i.productId);
+    return p?.category === "dev" || (!brandingItems.includes(i) && !uiuxItems.includes(i));
+  });
+
+  const brandingTotal = manualTotal > 0 ? priceStrategy : brandingItems.reduce((s, i) => s + i.totalPrice, 0);
+  const uiuxTotal = manualTotal > 0 ? priceDesign : uiuxItems.reduce((s, i) => s + i.totalPrice, 0);
+  const devTotal = manualTotal > 0 ? priceDev : devItems.reduce((s, i) => s + i.totalPrice, 0);
+
+  // Minimum price
+  const minimumPrice = (minHours * hourlyRate) + minExtras;
+
+  // Generate proposal data
+  const proposalData = useMemo(() => {
+    const today = new Date().toLocaleDateString("pt-BR");
+    const firstClientName = clientName.split(" ")[0].toUpperCase() || "CLIENTE";
+    const discount = workspaceConfig?.proposalDefaultDiscount ?? 10;
+    const downPayment = workspaceConfig?.proposalDownPayment ?? 50;
+    const installments = workspaceConfig?.proposalInstallments ?? 6;
+    const upfrontDiscountAmount = totalPrice * (discount / 100);
+    const upfrontValue = totalPrice - upfrontDiscountAmount;
+    const downValue = totalPrice * (downPayment / 100);
+    const installmentValue = (totalPrice - downValue) / installments;
+
+    const filteredBranding = brandingItems.filter(i => i.totalPrice > 0);
+    const filteredUiux = uiuxItems.filter(i => i.totalPrice > 0);
+    const filteredDev = devItems.filter(i => i.totalPrice > 0);
+
+    const etapas: any[] = [];
+
+    if (filteredBranding.length > 0 || priceStrategy > 0) {
+      etapas.push({
+        id: "etapa_1", numero: 1, categoria: "BRANDING",
+        titulo: "ESTRATÉGIA & IDENTIDADE VISUAL",
+        slides: [
+          { tipo: "conceito", pergunta: "O QUE É A ESTRATÉGIA?", conteudo: problem || "A primeira etapa entrega um entendimento claro sobre o que o seu negócio é, o que tem de único, como quer ser visto e lembrado pelos seus clientes, traduzido em uma estratégia que guiará a empresa a se comunicar de forma inteligível com o seu público." },
+          ...(filteredBranding.length > 0 ? [{
+            tipo: "entregaveis", pergunta: "O QUE SERÁ ENTREGUE NESTA ETAPA?",
+            itens: filteredBranding.map((i, idx) => ({ titulo: `${idx + 1}. ${i.name}`, descricao: `${i.quantity}x · ${i.estimatedHours}h cada · ${formatBRL(i.totalPrice)}` })),
+          }] : []),
+        ],
+      });
+    }
+
+    if (filteredUiux.length > 0 || priceDesign > 0) {
+      etapas.push({
+        id: "etapa_2", numero: 2, categoria: "EXPERIÊNCIA DIGITAL",
+        titulo: "UI / UX DESIGN",
+        slides: [
+          { tipo: "conceito", pergunta: "O QUE É O DESIGN DE INTERFACE (UI/UX)?", conteudo: "É o mapeamento e a construção da experiência digital do usuário dentro do sistema. Utilizaremos as definições estratégicas e a identidade visual para dar vida a telas intuitivas, responsivas e focadas na conversão do seu público-alvo." },
+          ...(filteredUiux.length > 0 ? [{
+            tipo: "entregaveis", pergunta: "O QUE SERÁ ENTREGUE NESTA ETAPA?",
+            itens: filteredUiux.map((i, idx) => ({ titulo: `${idx + 1}. ${i.name}`, descricao: `${i.quantity}x · ${i.estimatedHours}h cada · ${formatBRL(i.totalPrice)}` })),
+          }] : []),
+        ],
+      });
+    }
+
+    if (filteredDev.length > 0 || priceDev > 0) {
+      etapas.push({
+        id: "etapa_3", numero: 3, categoria: "TECNOLOGIA",
+        titulo: "DESENVOLVIMENTO DE SOFTWARE",
+        slides: [
+          { tipo: "conceito", pergunta: "O QUE É O DESENVOLVIMENTO TECNOLÓGICO?", conteudo: "A transformação dos protótipos de UI/UX aprovados em código limpo, performático e seguro. Implementamos o front-end responsivo alinhado às regras de negócio e integrações robustas no back-end." },
+          ...(filteredDev.length > 0 ? [{
+            tipo: "entregaveis", pergunta: "O QUE SERÁ ENTREGUE NESTA ETAPA?",
+            itens: filteredDev.map((i, idx) => ({ titulo: `${idx + 1}. ${i.name}`, descricao: `${i.quantity}x · ${i.estimatedHours}h cada · ${formatBRL(i.totalPrice)}` })),
+          }] : []),
+        ],
+      });
+    }
+
+    const weeksPerEtapa = (hours: number) => Math.max(1, Math.round(hours / 40));
+    const totalWeeks = weeks || Math.max(1, Math.round(totalHours / 40));
+
+    const cronogramaFluxo: any[] = [];
+    let weekOffset = 0;
+
+    if (filteredBranding.length > 0 || priceStrategy > 0) {
+      const w = weeksPerEtapa(filteredBranding.reduce((s, i) => s + i.estimatedHours * i.quantity, 0) || 40);
+      const weekLabels: string[] = [];
+      for (let j = 1; j <= w; j++) weekLabels.push(`Semana ${weekOffset + j}`);
+      cronogramaFluxo.push({ semanas: weekLabels, atividades: "Estratégia de Marca, Criação de Naming, Identidade Visual e Brand Book." });
+      weekOffset += w;
+    }
+
+    if (filteredUiux.length > 0 || priceDesign > 0) {
+      const w = weeksPerEtapa(filteredUiux.reduce((s, i) => s + i.estimatedHours * i.quantity, 0) || 40);
+      const weekLabels: string[] = [];
+      for (let j = 1; j <= w; j++) weekLabels.push(`Semana ${weekOffset + j}`);
+      cronogramaFluxo.push({ semanas: weekLabels, atividades: "Arquitetura de Informação, Wireframes, Design de Interface (UI/UX) e Protótipo Navegável." });
+      weekOffset += w;
+    }
+
+    if (filteredDev.length > 0 || priceDev > 0) {
+      const w = weeksPerEtapa(filteredDev.reduce((s, i) => s + i.estimatedHours * i.quantity, 0) || 40);
+      const weekLabels: string[] = [];
+      for (let j = 1; j <= w; j++) weekLabels.push(`Semana ${weekOffset + j}`);
+      cronogramaFluxo.push({ semanas: weekLabels, atividades: "Desenvolvimento Front-end e Back-end, Integrações, Testes e Deploy." });
+      weekOffset += w;
+    }
+
+    const orcamentoItens: any[] = [];
+    if (brandingTotal > 0) orcamentoItens.push({ servico: "ESTRATÉGIA DE MARCA & IDENTIDADE VISUAL", valor: formatBRL(brandingTotal) });
+    if (uiuxTotal > 0) orcamentoItens.push({ servico: "INTERFACE DIGITAL (UI/UX DESIGN)", valor: formatBRL(uiuxTotal) });
+    if (devTotal > 0) orcamentoItens.push({ servico: "DESENVOLVIMENTO DE SOFTWARE", valor: formatBRL(devTotal) });
+    orcamentoItens.push({ servico: "TOTAL", valor: formatBRL(totalPrice) });
+
+    return {
+      configuracoes_layout: {
+        proporcao: "16:9", orientacao: "landscape", unidade_medida: "px",
+        dimensoes_sugeridas: { largura: 1920, altura: 1080 },
+        estilo_base: { cor_fundo: "#FFFFFF", cor_texto_principal: "#000000", cor_texto_secundario: "#707070", font_family: "Helvetica Neue, Arial, sans-serif" },
+      },
+      proposta: {
+        capa: {
+          titulo: projectType,
+          subtitulo: projectType,
+          metadados: { cliente: clientName, empresa: clientCompany, data: today },
+        },
+        introducao: {
+          saudacao: `OLÁ ${firstClientName}.`,
+          mensagem_destaque: solution,
+        },
+        etapas,
+        cronograma: {
+          titulo: "CRONOGRAMA",
+          subtitulo: `PRAZO TOTAL: ${totalWeeks} ${totalWeeks === 1 ? "SEMANA" : "SEMANAS"}`,
+          fluxo: cronogramaFluxo,
+        },
+        financeiro: {
+          titulo: "INVESTIMENTO",
+          orcamento_itens: orcamentoItens,
+          condicoes_pagamento: {
+            titulo: "OPÇÕES DE PAGAMENTO",
+            opcoes: [
+              { nome: "Opção 1", modalidade: "À vista", descricao: `${formatBRL(upfrontValue)} com ${discount}% de desconto via PIX.` },
+              { nome: "Opção 2", modalidade: "Entrada + Parcelas", descricao: `Sinal de ${formatBRL(downValue)} para início imediato do projeto + ${installments}x de ${formatBRL(installmentValue)} via boleto ou cartão.` },
+            ],
+            nota_rodape: "Caso prefira outra opção de pagamento basta solicitar. Ficarei feliz em ajudar a encontrar o melhor formato.",
+          },
+        },
+        assinatura: {
+          nome_prestador: workspaceConfig?.proposalSignatureName ?? "Felipe Neneu",
+          cargo: workspaceConfig?.proposalSignatureRole ?? "Full-Stack Developer & Designer",
+          portfolio_url: workspaceConfig?.proposalSignatureSite ?? "",
+          contato_email: workspaceConfig?.proposalSignatureEmail ?? "",
+          endereco: workspaceConfig?.proposalSignatureCity ?? "",
+        },
+      },
+      clientId: selectedClientId,
+      clientName,
+      totalPrice,
+      totalHours,
+      hourlyRate,
+      monthlyGoal,
+      deadline: `${weeks} semanas`,
+      items: items.map(i => ({
+        productId: i.productId, name: i.name, estimatedHours: i.estimatedHours,
+        materialCost: i.materialCost, quantity: i.quantity,
+        calculatedPrice: ((i.estimatedHours * hourlyRate) + i.materialCost) * i.quantity,
+      })),
+    };
+  }, [
+    clientName, clientCompany, selectedClientId, items, projectType, problem, solution,
+    totalPrice, totalHours, hourlyRate, monthlyGoal, weeks,
+    brandingItems, uiuxItems, devItems, brandingTotal, uiuxTotal, devTotal,
+    priceStrategy, priceDesign, priceDev, workspaceConfig,
+  ]);
+
+  // Click outside to close dropdown
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowClientDropdown(false);
-      }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowClientDropdown(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Preselect client
   useEffect(() => {
     if (preselectedClientId) {
       const found = clients.find(c => c.id === preselectedClientId);
@@ -102,101 +327,93 @@ export function BudgetNewClient({ clients, company, preselectedClientId }: {
     }
   }, [preselectedClientId, clients]);
 
-  const meta = parseCurrency(metaRaw);
-  const extras = parseCurrency(extrasRaw);
-  const estimatedCosts = parseCurrency(estimatedCostsRaw);
-
-  const hourlyRate = meta / HOURS_PER_MONTH;
-  const laborCost = hours * hourlyRate;
-  const finalPrice = laborCost + extras;
-  const netProfit = finalPrice - estimatedCosts;
-  const margin = finalPrice > 0 ? (netProfit / finalPrice) * 100 : 0;
-
-  const today = useMemo(
-    () => new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
-    [],
-  );
-
   const filteredClients = useMemo(
-    () => clients.filter(c =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
+    () => clients.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase())),
     [clients, searchQuery],
   );
 
-  const handleSelectClient = useCallback((c: ClientData) => {
+  const filteredProducts = useMemo(() => {
+    let list = allProducts;
+    if (productFilterCat !== "all") list = list.filter(p => p.category === productFilterCat);
+    if (productSearch) list = list.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+    return list;
+  }, [allProducts, productFilterCat, productSearch]);
+
+  function handleSelectClient(c: ClientData) {
     setClientName(c.name);
     setClientDoc(c.document);
     setSelectedClientId(c.id);
     setSearchQuery(c.name);
     setShowClientDropdown(false);
-    if (c.notes && c.notes.length > 10) {
-      setScope(c.notes);
+  }
+
+  function addItem(product: Product) {
+    const existing = items.find(i => i.productId === product.id);
+    if (existing) {
+      setItems(prev => prev.map(i => i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i));
+    } else {
+      setItems(prev => [...prev, { id: crypto.randomUUID(), productId: product.id, name: product.name, estimatedHours: product.estimatedHours, materialCost: product.materialCost, quantity: 1 }]);
     }
-  }, []);
+    setShowProductSearch(false);
+    setProductSearch("");
+  }
 
-  const addDeliverable = useCallback(() => {
-    const trimmed = newDeliverable.trim();
-    if (!trimmed) return;
-    setDeliverables(prev => [...prev, trimmed]);
-    setNewDeliverable("");
-  }, [newDeliverable]);
+  function addCustomItem() {
+    const name = prompt("Nome do item avulso:");
+    if (!name) return;
+    const hours = Number(prompt("Horas estimadas:") || "0");
+    const cost = Number(prompt("Custo material (R$):") || "0");
+    setItems(prev => [...prev, { id: crypto.randomUUID(), productId: null, name, estimatedHours: hours, materialCost: cost, quantity: 1 }]);
+  }
 
-  const removeDeliverable = useCallback((index: number) => {
-    setDeliverables(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  function removeItem(id: string) {
+    setItems(prev => prev.filter(i => i.id !== id));
+  }
 
-  const handleApprove = useCallback(async () => {
-    if (!selectedClientId) {
-      toast.error("Selecione um cliente primeiro");
-      return;
-    }
+  function updateItemQty(id: string, qty: number) {
+    if (qty < 1) qty = 1;
+    setItems(prev => prev.map(i => i.id === id ? { ...i, quantity: qty } : i));
+  }
+
+  async function handleSave() {
+    if (!selectedClientId) { toast.error("Selecione um cliente"); return; }
+    if (totalPrice === 0) { toast.error("Defina pelo menos um preço"); return; }
     setSaving(true);
     try {
-      const budget = await createBudget({
-        clientName,
-        clientDocument: clientDoc,
-        clientId: selectedClientId,
-        scope,
-        hours,
-        hourlyRate,
-        laborCost,
-        extraCosts: extras,
-        totalPrice: finalPrice,
-        estimatedCosts,
-        deadline,
-        deliverables,
-      });
-      const result = await approveBudget(budget.id);
-      toast.success("Orçamento aprovado!", {
-        description: `Contrato criado para "${clientName}".`,
-      });
-      router.push(`/adm/contract/${result.contract.id}`);
-    } catch (err) {
-      toast.error("Erro ao aprovar orçamento", {
-        description: err instanceof Error ? err.message : "Erro desconhecido",
-      });
+      const budget = await createBudget(proposalData);
+      setBudgetId(budget.id);
+      toast.success("Proposta salva!");
+    } catch {
+      toast.error("Erro ao salvar proposta");
     } finally {
       setSaving(false);
     }
-  }, [selectedClientId, clientName, clientDoc, scope, hours, hourlyRate, laborCost, extras, finalPrice, estimatedCosts, deadline, deliverables, router]);
+  }
 
-  const marginColor = margin >= 60 ? "text-emerald-glow" : margin >= 30 ? "text-amber-glow" : "text-rose-glow";
+  async function handleApprove() {
+    if (!budgetId) { toast.error("Salve a proposta primeiro"); return; }
+    setSaving(true);
+    try {
+      const result = await approveBudget(budgetId);
+      toast.success("Proposta aprovada!", { description: `Projeto "${clientName}" criado.` });
+      router.push(`/adm/contract/${result.contract.id}`);
+    } catch {
+      toast.error("Erro ao aprovar proposta");
+    } finally {
+      setSaving(false);
+    }
+  }
 
-  async function generatePdf() {
-    const html2canvas = (await import("html2canvas")).default;
-    const element = document.getElementById("budget-preview");
-    if (!element) return;
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL("image/png");
-    const jsPDF = (await import("jspdf")).default;
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`orcamento-${clientName.replace(/\s+/g, "-").toLowerCase()}.pdf`);
-    toast.success("PDF gerado com sucesso");
+  async function handleExportPdf() {
+    setExportingPdf(true);
+    try {
+      await generateProposalPdf(proposalData as any, company);
+      toast.success("PDF gerado!");
+    } catch {
+      toast.error("Erro ao gerar PDF");
+    } finally {
+      setExportingPdf(false);
+    }
   }
 
   return (
@@ -204,67 +421,54 @@ export function BudgetNewClient({ clients, company, preselectedClientId }: {
       <header className="flex items-center justify-between border-b border-hairline px-8 py-4">
         <div className="flex items-center gap-3">
           <Link href="/adm/budget" className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground">
-            <ArrowLeft size={12} /> Orçamentos
+            <ArrowLeft size={12} /> Propostas
           </Link>
           <FileSignature size={16} className="text-emerald-glow" />
-          <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Novo Orçamento</p>
+          <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Nova Proposta</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={generatePdf}>
-            <Download size={14} /> Exportar PDF
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exportingPdf}>
+            {exportingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exportingPdf ? "Gerando..." : "PDF"}
           </Button>
-          <Button size="sm" onClick={handleApprove} disabled={saving || !selectedClientId}>
-            {saving ? "Aprovando…" : <><Check size={14} /> Aprovar Orçamento</>}
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
+            <Save size={14} /> {saving ? "Salvando..." : "Salvar"}
           </Button>
+          {budgetId && (
+            <Button size="sm" onClick={handleApprove} disabled={saving}>
+              <Check size={14} /> {saving ? "Aprovando..." : "Aprovar"}
+            </Button>
+          )}
         </div>
       </header>
 
-      <section className="grid grid-cols-1 gap-6 px-8 py-8 xl:grid-cols-2">
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Seleção de cliente</p>
-              <CardTitle className="text-display text-xl">Dados do contratante</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+      <section className="grid grid-cols-1 gap-6 px-8 py-8 2xl:grid-cols-[380px_1fr]">
+        {/* Editor */}
+        <div className="flex flex-col gap-4">
+          {/* Client data */}
+          <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-5">
+            <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Dados do cliente</p>
+            <div className="mt-4 flex flex-col gap-3">
               <div ref={searchRef} className="relative">
                 <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cliente</Label>
                 <div className="relative mt-1.5">
                   <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setShowClientDropdown(true); }}
-                    onFocus={() => setShowClientDropdown(true)}
-                    placeholder="Buscar cliente..."
-                    className="border-hairline bg-(--surface-2) pl-8"
-                  />
+                  <Input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowClientDropdown(true); }} onFocus={() => setShowClientDropdown(true)} placeholder="Buscar cliente..." className="border-hairline bg-[color:var(--surface-2)] pl-8" />
                   {searchQuery && (
-                    <button
-                      onClick={() => { setSearchQuery(""); setClientName(""); setClientDoc(""); setSelectedClientId(null); }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={14} />
-                    </button>
+                    <button onClick={() => { setSearchQuery(""); setClientName(""); setClientDoc(""); setClientCompany(""); setSelectedClientId(null); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X size={14} /></button>
                   )}
                   {showClientDropdown && (
-                    <div className="absolute z-10 mt-1 w-full rounded-xl border border-hairline bg-(--surface-0) py-1 shadow-2xl">
+                    <div className="absolute z-10 mt-1 w-full rounded-xl border border-hairline bg-[color:var(--surface-0)] py-1 shadow-2xl">
                       {filteredClients.length === 0 ? (
                         <p className="py-3 text-center text-xs text-muted-foreground">Nenhum cliente encontrado</p>
                       ) : (
                         filteredClients.map(c => (
-                          <button
-                            key={c.id}
-                            onClick={() => handleSelectClient(c)}
-                            className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-(--surface-2)"
-                          >
+                          <button key={c.id} onClick={() => handleSelectClient(c)} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-[color:var(--surface-2)]">
                             <User size={14} className="shrink-0 text-muted-foreground" />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-foreground">{c.name}</p>
                               <p className="truncate text-[10px] text-muted-foreground">{c.email}</p>
                             </div>
-                            {c.document && (
-                              <Badge variant="outline" className="shrink-0 text-[9px]">{c.document}</Badge>
-                            )}
+                            {c.document && <Badge variant="outline" className="shrink-0 text-[9px]">{c.document}</Badge>}
                           </button>
                         ))
                       )}
@@ -272,255 +476,193 @@ export function BudgetNewClient({ clients, company, preselectedClientId }: {
                   )}
                 </div>
               </div>
-
               <div>
                 <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Nome do cliente</Label>
-                <Input value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1.5 border-hairline bg-(--surface-2)" />
+                <Input value={clientName} onChange={(e) => setClientName(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
               </div>
-
               <div>
                 <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">CPF / CNPJ</Label>
-                <Input value={clientDoc} onChange={(e) => setClientDoc(e.target.value)} className="mt-1.5 border-hairline bg-(--surface-2)" />
+                <Input value={clientDoc} onChange={(e) => setClientDoc(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Calculadora de precificação</p>
-              <CardTitle className="text-display text-2xl">Preço mínimo garantido</CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Fórmula: <span className="text-mono text-foreground">Preço = (Horas × (Meta / 120h)) + Custos extras</span>
-              </p>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
               <div>
-                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo resumido</Label>
-                <Input value={scope} onChange={(e) => setScope(e.target.value)} className="mt-1.5 border-hairline bg-(--surface-2)" />
+                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Empresa</Label>
+                <Input value={clientCompany} onChange={(e) => setClientCompany(e.target.value)} placeholder="Ex: Academia Lorem Fit" className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Meta mensal (R$)</Label>
-                  <Input
-                    value={`R$ ${metaRaw}`}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9,]/g, "").replace(",", "");
-                      setMetaRaw(maskCurrency(val));
-                    }}
-                    className="mt-1.5 border-hairline bg-(--surface-2)"
-                  />
-                </div>
-                <div>
-                  <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Horas do projeto</Label>
-                  <Input type="number" value={hours} onChange={(e) => setHours(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-(--surface-2)" />
-                </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Tipo de projeto</Label>
+                <Input value={projectType} onChange={(e) => setProjectType(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Custos extras (R$)</Label>
-                  <Input
-                    value={`R$ ${extrasRaw}`}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9,]/g, "").replace(",", "");
-                      setExtrasRaw(maskCurrency(val));
-                    }}
-                    className="mt-1.5 border-hairline bg-(--surface-2)"
-                  />
-                  <p className="mt-1 text-[10px] text-muted-foreground">Domínio, hospedagem, licenças, assets premium.</p>
-                </div>
-                <div>
-                  <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Prazo</Label>
-                  <Input value={deadline} onChange={(e) => setDeadline(e.target.value)} className="mt-1.5 border-hairline bg-(--surface-2)" />
-                </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Dor a ser resolvida</Label>
+                <Textarea value={problem} onChange={(e) => setProblem(e.target.value)} rows={3} className="mt-1.5 border-hairline bg-[color:var(--surface-2)] text-xs" />
               </div>
-
-              <div className="rounded-xl border border-emerald-glow/30 bg-emerald-glow/5 p-4">
-                <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">Cálculo em tempo real</p>
-                <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-mono text-[10px] text-muted-foreground">Hora/valor</p>
-                    <p className="text-display text-lg text-foreground">{formatBRL(hourlyRate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-mono text-[10px] text-muted-foreground">Mão de obra</p>
-                    <p className="text-display text-lg text-foreground">{formatBRL(laborCost)}</p>
-                  </div>
-                  <div>
-                    <p className="text-mono text-[10px] text-muted-foreground">Extras</p>
-                    <p className="text-display text-lg text-foreground">{formatBRL(extras)}</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-baseline justify-between border-t border-hairline pt-3">
-                  <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Preço final mínimo</p>
-                  <p className="text-display text-3xl text-emerald-glow">{formatBRL(finalPrice)}</p>
-                </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Solução proposta</Label>
+                <Textarea value={solution} onChange={(e) => setSolution(e.target.value)} rows={3} className="mt-1.5 border-hairline bg-[color:var(--surface-2)] text-xs" />
               </div>
+            </div>
+          </div>
 
-              <div className="rounded-xl border border-amber-glow/30 bg-amber-glow/5 p-4">
-                <p className="text-mono text-[10px] uppercase tracking-widest text-amber-glow">Rentabilidade do projeto</p>
-                <div className="mt-3 grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Custos estimados (R$)</Label>
-                    <Input
-                      value={`R$ ${estimatedCostsRaw}`}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9,]/g, "").replace(",", "");
-                        setEstimatedCostsRaw(maskCurrency(val));
-                      }}
-                      className="mt-1.5 border-hairline bg-(--surface-2)"
-                    />
-                  </div>
-                  <div className="flex flex-col justify-end">
-                    <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Margem líquida</p>
-                    <p className={`text-display text-2xl ${marginColor}`}>
-                      {margin >= 0 ? "+" : ""}{margin.toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 rounded-lg border border-hairline bg-(--surface-2) px-3 py-2">
-                    <Banknote size={14} className="shrink-0 text-muted-foreground" />
-                    <div>
-                      <p className="text-mono text-[9px] uppercase tracking-widest text-muted-foreground">Custos</p>
-                      <p className="text-display text-sm text-rose-glow">-{formatBRL(estimatedCosts)}</p>
+          {/* Products */}
+          <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-5">
+            <p className="text-mono text-[10px] uppercase tracking-widest text-violet-glow">Produtos & Itens</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Hora/valor: <span className="font-semibold text-foreground">{formatBRL(hourlyRate)}/h</span>
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              {itemSummaries.length === 0 ? (
+                <p className="py-3 text-center text-xs text-muted-foreground">Nenhum item adicionado</p>
+              ) : (
+                itemSummaries.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 rounded-lg border border-hairline bg-[color:var(--surface-2)] px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium text-foreground">{item.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{item.estimatedHours}h · {formatBRL(item.materialCost)}</p>
                     </div>
+                    <Input type="number" min={1} value={item.quantity} onChange={(e) => updateItemQty(item.id, Number(e.target.value) || 1)} className="w-12 h-7 text-center text-[10px]" />
+                    <p className="w-20 text-right text-xs font-semibold text-emerald-glow">{formatBRL(item.totalPrice)}</p>
+                    <button onClick={() => removeItem(item.id)} className="text-muted-foreground/40 hover:text-rose-glow"><Trash2 size={12} /></button>
                   </div>
-                  <div className="flex items-center gap-2 rounded-lg border border-hairline bg-(--surface-2) px-3 py-2">
-                    <Building2 size={14} className="shrink-0 text-emerald-glow" />
-                    <div>
-                      <p className="text-mono text-[9px] uppercase tracking-widest text-muted-foreground">Lucro líquido</p>
-                      <p className={`text-display text-sm ${netProfit >= 0 ? "text-emerald-glow" : "text-rose-glow"}`}>
-                        {netProfit >= 0 ? "" : "-"}{formatBRL(Math.abs(netProfit))}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <p className="text-mono text-[10px] uppercase tracking-widest text-violet-glow">Entregas</p>
-                  <CardTitle className="text-display text-xl">Deliverables</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-3 flex items-center gap-2">
-                    <Input
-                      value={newDeliverable}
-                      onChange={(e) => setNewDeliverable(e.target.value)}
-                      placeholder="Adicionar entrega…"
-                      className="flex-1 text-sm"
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addDeliverable())}
-                    />
-                    <Button size="sm" onClick={addDeliverable}><Plus size={12} /> Add</Button>
-                  </div>
-                  <div className="flex flex-col divide-y divide-hairline">
-                    {deliverables.length === 0 && (
-                      <p className="py-3 text-center text-xs text-muted-foreground">Nenhuma entrega cadastrada.</p>
-                    )}
-                    {deliverables.map((d, i) => (
-                      <div key={i} className="flex items-center gap-3 py-2.5">
-                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-hairline text-[10px] text-muted-foreground">{i + 1}</span>
-                        <p className="flex-1 text-sm text-foreground">{d}</p>
-                        <button onClick={() => removeDeliverable(i)} className="text-muted-foreground hover:text-rose-glow">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                ))
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowProductSearch(true)} className="h-7 text-[11px]">
+                <Plus size={12} /> Produto
+              </Button>
+              <Button variant="ghost" size="sm" onClick={addCustomItem} className="h-7 text-[11px]">
+                <Plus size={12} /> Avulso
+              </Button>
+            </div>
+            {showProductSearch && (
+              <div className="mt-3 rounded-xl border border-hairline bg-[color:var(--surface-2)] p-3">
+                <div className="mb-2 flex items-center gap-2">
+                  <Input value={productSearch} onChange={(e) => setProductSearch(e.target.value)} placeholder="Buscar..." className="flex-1 text-xs" autoFocus />
+                  <div className="flex gap-1">
+                    {["all", "branding", "ui-ux", "dev"].map(cat => (
+                      <button key={cat} onClick={() => setProductFilterCat(cat)} className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${productFilterCat === cat ? "bg-foreground text-[color:var(--surface-0)]" : "text-muted-foreground hover:text-foreground"}`}>
+                        {cat === "all" ? "Todos" : cat}
+                      </button>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
+                  <button onClick={() => setShowProductSearch(false)} className="text-muted-foreground hover:text-foreground"><X size={12} /></button>
+                </div>
+                <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
+                  {filteredProducts.length === 0 && <p className="py-2 text-center text-[10px] text-muted-foreground">Nenhum</p>}
+                  {filteredProducts.map(p => (
+                    <button key={p.id} onClick={() => addItem(p)} className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-[color:var(--surface-1)]">
+                      <Plus size={10} className="shrink-0 text-emerald-glow" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-foreground">{p.name}</p>
+                        <p className="text-[9px] text-muted-foreground">{p.estimatedHours}h · {formatBRL(p.materialCost)}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Per-stage prices */}
+          <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-5">
+            <p className="text-mono text-[10px] uppercase tracking-widest text-violet-glow">Investimento por etapa</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Defina preços manuais ou use os valores dos itens.</p>
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <div>
+                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Estratégia / Descoberta</Label>
+                <Input type="number" value={priceStrategy || ""} onChange={(e) => setPriceStrategy(Number(e.target.value) || 0)} placeholder={formatBRL0(brandingItems.reduce((s, i) => s + i.totalPrice, 0))} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">UI/UX Design</Label>
+                <Input type="number" value={priceDesign || ""} onChange={(e) => setPriceDesign(Number(e.target.value) || 0)} placeholder={formatBRL0(uiuxItems.reduce((s, i) => s + i.totalPrice, 0))} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Desenvolvimento Web</Label>
+                <Input type="number" value={priceDev || ""} onChange={(e) => setPriceDev(Number(e.target.value) || 0)} placeholder={formatBRL0(devItems.reduce((s, i) => s + i.totalPrice, 0))} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline justify-between border-t border-hairline pt-3">
+              <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Total</p>
+              <p className="text-display text-2xl text-emerald-glow">{formatBRL(totalPrice)}</p>
+            </div>
+          </div>
+
+          {/* Minimum price validator */}
+          <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-5">
+            <p className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow">
+              <Calculator size={12} className="inline mr-1" />Validador de preço mínimo
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Fórmula: (Horas × Meta/120h) + Extras</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-mono text-[10px] uppercase text-muted-foreground">Meta</Label>
+                <Input type="number" value={monthlyGoal} readOnly className="mt-1.5 border-hairline bg-[color:var(--surface-2)] h-8 text-xs" />
+              </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase text-muted-foreground">Horas</Label>
+                <Input type="number" value={minHours} onChange={(e) => setMinHours(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)] h-8 text-xs" />
+              </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase text-muted-foreground">Extras</Label>
+                <Input type="number" value={minExtras} onChange={(e) => setMinExtras(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)] h-8 text-xs" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-glow/30 bg-emerald-glow/5 px-3 py-2">
+              <span className="text-mono text-[10px] uppercase text-emerald-glow">Preço mínimo</span>
+              <span className="text-display text-base text-foreground">{formatBRL(minimumPrice)}</span>
+            </div>
+            {totalPrice > 0 && totalPrice < minimumPrice && (
+              <p className="mt-2 text-[11px] text-rose-400">⚠ Total abaixo do preço mínimo saudável.</p>
+            )}
+          </div>
+
+          {/* Schedule */}
+          <div className="rounded-2xl border border-hairline bg-[color:var(--surface-1)] p-5">
+            <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cronograma</p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-mono text-[10px] uppercase text-muted-foreground">Início</Label>
+                <Input value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              </div>
+              <div>
+                <Label className="text-mono text-[10px] uppercase text-muted-foreground">Entrega</Label>
+                <Input value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-mono text-[10px] uppercase text-muted-foreground">Prazo (semanas)</Label>
+                <Input type="number" value={weeks} onChange={(e) => setWeeks(Number(e.target.value) || 0)} className="mt-1.5 border-hairline bg-[color:var(--surface-2)]" />
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Preview */}
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <FileSignature size={14} className="text-violet-glow" />
-            <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Preview do orçamento</p>
-          </div>
-
-          <div id="budget-preview" className="flex flex-col rounded-2xl border border-hairline bg-(--surface-0) p-8 text-sm">
-            {company?.logo && (
-              <img src={company.logo} alt={company.tradingName} className="mb-6 max-h-16 w-fit object-contain" />
-            )}
-            {company && (
-              <div className="mb-6 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground">{company.tradingName}</p>
-                {company.document && <p>CNPJ: {company.document}</p>}
-                {company.street && (
-                  <p>{company.street}{company.number ? `, ${company.number}` : ""}{company.neighborhood ? ` - ${company.neighborhood}` : ""}</p>
-                )}
-                {company.city && company.state && <p>{company.city}/${company.state}</p>}
-              </div>
-            )}
-
-            <div className="mb-6 border-b border-hairline pb-4">
-              <h2 className="text-display text-xl font-semibold text-foreground">Orçamento</h2>
-              <p className="mt-1 text-xs text-muted-foreground">{today}</p>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cliente</p>
-              <p className="text-foreground">{clientName || "—"}</p>
-              {clientDoc && <p className="text-xs text-muted-foreground">{clientDoc}</p>}
-            </div>
-
-            <div className="mb-4">
-              <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Escopo</p>
-              <p className="text-foreground">{scope || "—"}</p>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Investimento</p>
-              <div className="mt-1 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Mão de obra ({hours}h × {formatBRL(hourlyRate)}/h)</span>
-                  <span className="text-foreground">{formatBRL(laborCost)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Infraestrutura</span>
-                  <span className="text-foreground">{formatBRL(extras)}</span>
-                </div>
-                <div className="flex justify-between border-t border-hairline pt-1 font-semibold">
-                  <span className="text-foreground">Total</span>
-                  <span className="text-emerald-glow">{formatBRL(finalPrice)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Prazo</p>
-              <p className="text-foreground">{deadline}</p>
-            </div>
-
-            {deliverables.length > 0 && (
-              <div className="mb-4">
-                <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Entregas</p>
-                <ul className="mt-1 list-inside list-disc text-sm text-foreground">
-                  {deliverables.map((d, i) => <li key={i}>{d}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {company && (company.bankName || company.pixKey) && (
-              <div className="mt-6 border-t border-hairline pt-4">
-                <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">Dados bancários</p>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {company.bankName && <p>Banco: {company.bankName}</p>}
-                  {company.bankAgency && <p>Agência: {company.bankAgency}</p>}
-                  {company.bankAccount && <p>Conta: {company.bankAccount}</p>}
-                  {company.pixKey && <p>PIX ({company.pixKeyType}): {company.pixKey}</p>}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 border-t border-hairline pt-4 text-center text-xs text-muted-foreground">
-              <p>Orçamento gerado em {today}</p>
-              <p className="mt-1 font-semibold text-foreground">{company?.tradingName || "Studio One"}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Preview da proposta
+            </p>
+            <div className="flex items-center gap-1 rounded-lg border border-hairline p-0.5">
+              <button
+                onClick={() => setPreviewMode("pages")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  previewMode === "pages" ? "bg-foreground text-[color:var(--surface-0)]" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >📄 Páginas</button>
+              <button
+                onClick={() => setPreviewMode("slides")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  previewMode === "slides" ? "bg-foreground text-[color:var(--surface-0)]" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >🎞 Slides</button>
             </div>
           </div>
+
+          {previewMode === "pages" ? (
+            <ProposalPages data={proposalData as any} company={company} />
+          ) : (
+            <ProposalSlides data={proposalData as any} totalPrice={totalPrice} company={company} />
+          )}
         </div>
       </section>
     </>

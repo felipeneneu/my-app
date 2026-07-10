@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { saveCompany } from "@/lib/actions/company";
+import { applyPhoneMask } from "@/lib/utils";
 
 type Company = {
   id: string;
@@ -79,12 +80,6 @@ function applyCpfCnpjMask(raw: string) {
 function applyCepMask(raw: string) {
   const d = raw.replace(/\D/g, "").slice(0, 8);
   return d.replace(/^(\d{5})(\d{3})$/, "$1-$2");
-}
-
-function applyPhoneMask(raw: string) {
-  const d = raw.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 10) return d.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
-  return d.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
 }
 
 function crc16(str: string): string {

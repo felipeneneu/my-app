@@ -1,0 +1,167 @@
+{
+  "configuracoes_layout": {
+    "proporcao": "16:9",
+    "orientacao": "landscape",
+    "unidade_medida": "px",
+    "dimensoes_sugeridas": {
+      "largura": 1920,
+      "altura": 1080
+    },
+    "estilo_base": {
+      "cor_fundo": "#FFFFFF",
+      "cor_texto_principal": "#000000",
+      "cor_texto_secundario": "#707070",
+      "font_family": "Helvetica Neue, Arial, sans-serif"
+    }
+  },
+  "proposta": {
+    "capa": {
+      "titulo": "PROPOSTA",
+      "subtitulo": "DESENVOLVIMENTO WEB / UI UX DESIGN / IDENTIDADE VISUAL",
+      "metadados": {
+        "cliente": "",
+        "empresa": "",
+        "data": ""
+      }
+    },
+    "introducao": {
+      "saudacao": "",
+      "mensagem_destaque": ""
+    },
+    "etapas": [
+      {
+        "id": "etapa_1",
+        "numero": 1,
+        "categoria": "BRANDING",
+        "titulo": "ESTRATÉGIA & IDENTIDADE VISUAL",
+        "slides": [
+          {
+            "tipo": "conceito",
+            "pergunta": "1. O QUE É A ESTRATÉGIA?",
+            "conteudo": "A primeira etapa entrega um entendimento claro sobre o que o seu negócio é, o que tem de único, como quer ser visto e lembrado pelos seus clientes, traduzido em uma estratégia que guiará a empresa a se comunicar de forma inteligível com o seu público."
+          },
+          {
+            "tipo": "dores",
+            "pergunta": "2. QUAIS DORES SERÃO SOLUCIONADAS NESSA ETAPA?",
+            "paragrafos": [
+              "O seu negócio precisa se posicionar de forma clara para pessoas que não se identificam com o mercado tradicional, superando as dificuldades atuais de comunicação que diminuem o interesse de potenciais novos clientes.",
+              "A etapa de estratégia vai trazer definição e clareza, permitindo que a marca comunique de forma mais objetiva o que ela vende/oferece e, consequentemente, a torne mais comercial e competitiva no mercado."
+            ]
+          },
+          {
+            "tipo": "entregaveis",
+            "pergunta": "3. O QUE SERÁ ENTREGUE NESTA ETAPA?",
+            "itens": [
+              {
+                "titulo": "1. ESSÊNCIA DA MARCA",
+                "descricao": "DNA, Propósito, Visão e Valores da marca."
+              },
+              {
+                "titulo": "2. ESTRATÉGIA DE MARCA",
+                "descricao": "Posicionamento, Promessa, Pontos de Contato, Público de Interesse e Personas, Personalidade da marca."
+              },
+              {
+                "titulo": "3. LOGOTIPO & BRAND BOOK",
+                "descricao": "Criação do símbolo principal, tipografia, paleta de cores e o manual completo de reprodução e aplicação da identidade visual."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "etapa_2",
+        "numero": 2,
+        "categoria": "EXPERIÊNCIA Digital",
+        "titulo": "UI / UX DESIGN",
+        "slides": [
+          {
+            "tipo": "conceito",
+            "pergunta": "1. O QUE É O DESIGN DE INTERFACE (UI/UX)?",
+            "conteudo": "É o mapeamento e a construção da experiência digital do usuário dentro do sistema. Utilizaremos as definições estratégicas e a identidade visual para dar vida a telas intuitivas, responsivas e focadas na conversão do seu público-alvo."
+          },
+          {
+            "tipo": "entregaveis",
+            "pergunta": "2. O QUE SERÁ ENTREGUE NESTA ETAPA?",
+            "itens": [
+              {
+                "titulo": "1. FLUXO DE USUÁRIO & WIREFRAMES",
+                "descricao": "Desenho estrutural inicial da arquitetura de informação e mapeamento da jornada de navegação das telas principais."
+              },
+              {
+                "titulo": "2. PROTÓTIPO DE ALTA FIDELIDADE",
+                "descricao": "Design visual final e navegável de todas as interfaces (Web e Mobile) criado no Figma com transições e interações realistas."
+              },
+              {
+                "titulo": "3. DESIGN SYSTEM / STYLE GUIDE",
+                "descricao": "Componentização padronizada de botões, inputs, cards e estados de elementos para otimizar o desenvolvimento de software."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "etapa_3",
+        "numero": 3,
+        "categoria": "TECNOLOGIA",
+        "titulo": "DESENVOLVIMENTO DE SOFTWARE",
+        "slides": [
+          {
+            "tipo": "conceito",
+            "pergunta": "1. O QUE É O DESENVOLVIMENTO TECNOLÓGICO?",
+            "conteudo": "A transformação dos protótipos de UI/UX aprovados em código limpo, performático e seguro. Implementamos o front-end responsivo alinhado às regras de negócio e integrações robustas no back-end."
+          },
+          {
+            "tipo": "entregaveis",
+            "pergunta": "2. O QUE SERÁ ENTREGUE NESTA ETAPA?",
+            "itens": [
+              {
+                "titulo": "1. DESENVOLVIMENTO FRONT-END",
+                "descricao": "Construção das interfaces utilizando tecnologias modernas (ex: React/Next.js, Tailwind CSS), garantindo uma abordagem mobile-first fluida."
+              },
+              {
+                "titulo": "2. ARQUITETURA BACK-END & BANCO DE DADOS",
+                "descricao": "Estruturação de bancos de dados seguros, criação de APIs RESTful e lógica de autenticação segura para usuários e administradores."
+              },
+              {
+                "titulo": "3. INTEGRAÇÕES & DEPLOY",
+                "descricao": "Configuração de gateways de pagamento, serviços de e-mail/notificação e publicação da plataforma em ambiente de produção homologado."
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "cronograma": {
+      "titulo": "CRONOGRAMA",
+      "subtitulo": "",
+      "fluxo": []
+    },
+    "financeiro": {
+      "titulo": "INVESTIMENTO",
+      "orcamento_itens": [],
+      "condicoes_pagamento": {
+        "titulo": "OPÇÕES DE PAGAMENTO",
+        "opcoes": [
+          {
+            "nome": "Opção 1",
+            "modalidade": "À vista",
+            "descricao": "com desconto atrativo via PIX."
+          },
+          {
+            "nome": "Opção 2",
+            "modalidade": "Entrada + Parcelas",
+            "descricao": "Sinal para início imediato do projeto + parcelas fixas via boleto ou cartão."
+          }
+        ],
+        "nota_rodape": "Caso prefira outra opção de pagamento basta solicitar. Ficarei feliz em ajudar a encontrar o melhor formato."
+      }
+    },
+    "assinatura": {
+      "nome_prestador": "",
+      "cargo": "",
+      "portfolio_url": "",
+      "contato_email": "",
+      "endereco": ""
+    }
+  }
+}
