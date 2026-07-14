@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import {
   projects, tasks, workspaceConfig, leads, clients,
-  businessExpenses, documents, revenues,
+  businessExpenses, documents, revenues, workSchedule,
 } from "@/db/schema";
 import { eq, sql, gte } from "drizzle-orm";
 
@@ -45,6 +45,7 @@ export async function getNotificationsFromEngine(): Promise<{
   const taskList = await db.select().from(tasks);
   const allLeads = await db.select().from(leads);
   const clientList = await db.select().from(clients);
+  const workScheduleList = await db.select().from(workSchedule);
   const today = todayStr();
 
   // --- Overdue tasks ---
@@ -173,6 +174,50 @@ export async function getNotificationsFromEngine(): Promise<{
       message: `Você tem ${proposals.length} orçamento(s) enviado(s) sem retorno. Envie um follow-up para cada.`,
       priority: "medium",
     });
+  }
+
+  // --- Weekly capacity insight ---
+  const weekStartDate = startOfWeek();
+  if (workScheduleList.length > 0) {
+    let weeklyAvailableMinutes = 0;
+    for (let d = 0; d < 7; d++) {
+      const daySchedule = workScheduleList.filter(
+        (s: { dayOfWeek: number; blockType: string; startTime: string; endTime: string }) =>
+          s.dayOfWeek === d && s.blockType !== "unavailable" && s.blockType !== "break"
+      );
+      for (const block of daySchedule) {
+        const [sh, sm] = block.startTime.split(":").map(Number);
+        const [eh, em] = block.endTime.split(":").map(Number);
+        weeklyAvailableMinutes += (eh * 60 + em) - (sh * 60 + sm);
+      }
+    }
+    const weeklyAvailableHours = Math.round(weeklyAvailableMinutes / 60);
+
+    const weekEnd = new Date(weekStartDate);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekEndStr = weekEnd.toISOString().split("T")[0];
+
+    const weekTasksAll = taskList.filter(
+      (t: { dueDate: string; completed: boolean; estimatedHours: number | null }) =>
+        t.dueDate >= weekStartDate && t.dueDate <= weekEndStr && !t.completed
+    );
+    const committedHours = weekTasksAll.reduce(
+      (s: number, t: { estimatedHours: number | null }) => s + (t.estimatedHours ?? 0), 0
+    );
+
+    if (weeklyAvailableHours > 0) {
+      const pct = Math.round((committedHours / weeklyAvailableHours) * 100);
+      if (pct > 70) {
+        const priority: "high" | "medium" = pct > 90 ? "high" : "medium";
+        const weekLabel = `${new Date(weekStartDate).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}–${weekEnd.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}`;
+        generated.push({
+          type: "warning",
+          title: "Capacidade crítica",
+          message: `${weekLabel}: ${committedHours}h comprometidas de ${weeklyAvailableHours}h disponíveis (${pct}%) — ${pct > 90 ? "evite novos prazos nesta janela." : "considere antes de assumir novo trabalho."}`,
+          priority,
+        });
+      }
+    }
   }
 
   return { generated };

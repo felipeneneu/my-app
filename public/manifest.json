@@ -1,0 +1,13 @@
+{
+  "name": "Hunter Mobile",
+  "short_name": "Hunter",
+  "description": "Acompanhe quests, hábitos e evolução do seu Hunter",
+  "start_url": "/hunter",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+  ]
+}

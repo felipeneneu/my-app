@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bell, CheckCheck, Trash2, Sparkles, AlertTriangle, Timer, Info, Swords } from "lucide-react";
 import { useNotificationStream } from "@/hooks/use-notification-stream";
@@ -14,6 +15,7 @@ import { markAsReadAction, markAllAsReadAction, dismissNotificationAction, clear
 export function NotificationsBell() {
   const { unreadCount, notifications, connected } = useNotificationStream();
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const getIcon = (type: string) => {
     const map: Record<string, typeof Sparkles> = {
@@ -33,9 +35,29 @@ export function NotificationsBell() {
     warning: "text-amber-glow",
     insight: "text-violet-glow",
     suggestion: "text-emerald-glow",
-    info: "text-cyan-glow",
+    info: "text-muted-foreground",
     system: "text-muted-foreground",
   };
+
+  const handleMarkAllRead = useCallback(async () => {
+    await markAllAsReadAction();
+    router.refresh();
+  }, [router]);
+
+  const handleClearAllRead = useCallback(async () => {
+    await clearAllReadAction();
+    router.refresh();
+  }, [router]);
+
+  const handleMarkRead = useCallback(async (id: string) => {
+    await markAsReadAction(id);
+    router.refresh();
+  }, [router]);
+
+  const handleDismiss = useCallback(async (id: string) => {
+    await dismissNotificationAction(id);
+    router.refresh();
+  }, [router]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,75 +73,75 @@ export function NotificationsBell() {
         )}
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-[380px] p-0">
-        <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-          <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Notificações {unreadCount > 0 && <span className="text-rose-glow">· {unreadCount} nova(s)</span>}
-          </p>
-          <div className="flex items-center gap-1">
-            {unreadCount > 0 && (
-              <Button
-                onClick={async () => { await markAllAsReadAction(); setOpen(false); }}
-                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-              >
-                <CheckCheck size={12} /> Ler todas
+        <div className="flex max-h-[560px] flex-col">
+          <div className="flex shrink-0 items-center justify-between border-b border-hairline px-4 py-3">
+            <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Notificações {unreadCount > 0 && <span className="text-rose-glow">· {unreadCount} nova(s)</span>}
+            </p>
+            <div className="flex items-center gap-1">
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="xs" onClick={handleMarkAllRead}>
+                  <CheckCheck size={12} /> Ler todas
+                </Button>
+              )}
+              <Button variant="ghost" size="xs" onClick={handleClearAllRead}>
+                <Trash2 size={12} /> Limpar lidas
               </Button>
-            )}
-            <Button
-              onClick={async () => { await clearAllReadAction(); setOpen(false); }}
-              className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-rose-glow"
-            >
-              <Trash2 size={12} /> Limpar lidas
-            </Button>
+            </div>
           </div>
-        </div>
-        <ScrollArea className="max-h-105">
-          {notifications.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <Bell size={20} className="text-muted-foreground/40" />
-              <p className="text-xs text-muted-foreground">Nenhuma notificação por enquanto</p>
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {notifications.map((n) => (
-                <div key={n.id} className={["group flex gap-3 border-b border-hairline px-4 py-3 transition-colors", n.read ? "opacity-60" : "hover:bg-(--surface-2)"].join(" ")}>
-                  <div className={`mt-0.5 ${toneMap[n.type] ?? "text-muted-foreground"}`}>
-                    {getIcon(n.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={["text-sm font-medium truncate", n.read ? "text-muted-foreground" : "text-foreground"].join(" ")}>{n.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
-                    <p className="mt-1 text-mono text-[9px] text-muted-foreground/60">
-                      {new Date(n.createdAt).toLocaleString("pt-BR")}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {!n.read && (
+
+          <ScrollArea className="flex-1">
+            {notifications.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+                <Bell size={20} className="text-muted-foreground/40" />
+                <p className="text-[11px] text-muted-foreground">Nenhuma notificação por enquanto</p>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {notifications.map((n) => (
+                  <div key={n.id} className={["group flex gap-3 border-b border-hairline px-4 py-3 transition-colors", n.read ? "opacity-50" : "hover:bg-(--surface-2)"].join(" ")}>
+                    <div className={`mt-0.5 ${toneMap[n.type] ?? "text-muted-foreground"}`}>
+                      {getIcon(n.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={["text-sm", n.read ? "text-muted-foreground" : "text-foreground"].join(" ")}>{n.title}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">{n.message}</p>
+                      <p className="mt-1 text-mono text-[9px] text-muted-foreground/60">
+                        {new Date(n.createdAt).toLocaleString("pt-BR")}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      {!n.read && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => handleMarkRead(n.id)}
+                          title="Marcar como lida"
+                        >
+                          <CheckCheck size={12} />
+                        </Button>
+                      )}
                       <Button
-                        onClick={async () => { await markAsReadAction(n.id); }}
-                        className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-emerald-glow"
-                        title="Marcar como lida"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => handleDismiss(n.id)}
+                        title="Remover"
                       >
-                        <CheckCheck size={12} />
+                        <Trash2 size={12} />
                       </Button>
-                    )}
-                    <Button
-                      onClick={async () => { await dismissNotificationAction(n.id); }}
-                      className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-rose-glow"
-                      title="Remover"
-                    >
-                      <Trash2 size={12} />
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-        <Separator />
-        <div className="px-4 py-2">
-          <Link href="/adm/notifications" className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow hover:brightness-110">
-            Ver todas as notificações →
-          </Link>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
+          <Separator />
+          <div className="shrink-0 px-4 py-2">
+            <Link href="/adm/notifications" className="text-mono text-[10px] uppercase tracking-widest text-emerald-glow hover:brightness-110">
+              Ver todas as notificações →
+            </Link>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

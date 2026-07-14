@@ -41,9 +41,10 @@ interface Props {
   defaultDate?: string;
   projects: { id: string; name: string }[];
   onNewProject?: () => void;
+  onCreated?: () => void;
 }
 
-export function CreateTaskSheet({ open, onOpenChange, defaultDate, projects, onNewProject }: Props) {
+export function CreateTaskSheet({ open, onOpenChange, defaultDate, projects, onNewProject, onCreated }: Props) {
   const queryClient = useQueryClient();
 
   const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
@@ -65,6 +66,7 @@ export function CreateTaskSheet({ open, onOpenChange, defaultDate, projects, onN
       reset();
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      onCreated?.();
     }
   }, [reset, onOpenChange, queryClient]);
 

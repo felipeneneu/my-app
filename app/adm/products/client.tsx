@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getProducts,
@@ -13,15 +13,32 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  Edit3,
-  Save,
-  X,
-  Package,
-  Sparkles,
+  ArrowLeft, Plus, Trash2, Edit3, Save, X, Package, Sparkles,
+  Search, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  Columns3,
 } from "lucide-react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+  type ColumnFiltersState,
+  type VisibilityState,
+  type RowSelectionState,
+} from "@tanstack/react-table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,8 +56,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 
 const CATEGORIES: { value: string; label: string; color: string }[] = [
   { value: "branding", label: "Branding", color: "text-violet-glow" },
@@ -50,9 +73,13 @@ const CATEGORIES: { value: string; label: string; color: string }[] = [
   { value: "other", label: "Outros", color: "text-muted-foreground" },
 ];
 
+const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.value, c]));
+
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 }
+
+const columnHelper = createColumnHelper<Product>();
 
 export function ProductsClient({
   initialProducts,
@@ -62,7 +89,16 @@ export function ProductsClient({
   totalCount: number;
 }) {
   const queryClient = useQueryClient();
-  const [filterCategory, setFilterCategory] = useState("all");
+  const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+
+  const categoryFilter = columnFilters.find((f) => f.id === "category");
+  const activeCategory = (categoryFilter?.value as string) ?? "all";
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
@@ -80,17 +116,13 @@ export function ProductsClient({
     initialData: initialProducts,
   });
 
-  const filtered = filterCategory === "all"
-    ? products
-    : products.filter((p) => p.category === filterCategory);
-
-  function openCreate() {
+  const openCreate = useCallback(() => {
     setEditingId(null);
     setForm({ name: "", description: "", estimatedHours: 0, materialCost: 0, category: "other" });
     setDialogOpen(true);
-  }
+  }, []);
 
-  function openEdit(p: Product) {
+  const openEdit = useCallback((p: Product) => {
     setEditingId(p.id);
     setForm({
       name: p.name,
@@ -100,7 +132,7 @@ export function ProductsClient({
       category: p.category,
     });
     setDialogOpen(true);
-  }
+  }, []);
 
   async function handleSave() {
     if (!form.name.trim()) return;
@@ -133,7 +165,135 @@ export function ProductsClient({
     setSeeding(false);
   }
 
-  const categoryLabel = (cat: string) => CATEGORIES.find(c => c.value === cat);
+  const columns = useMemo(
+    () => [
+      columnHelper.display({
+        id: "select",
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllRowsSelected()}
+            onCheckedChange={(val) => table.toggleAllRowsSelected(!!val)}
+            aria-label="Selecionar todos"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(val) => row.toggleSelected(!!val)}
+            aria-label={`Selecionar ${row.original.name}`}
+          />
+        ),
+        enableSorting: false,
+        enableColumnFilter: false,
+      }),
+      columnHelper.accessor("name", {
+        header: "Produto",
+        cell: (info) => (
+          <span className="font-medium text-foreground">{info.getValue()}</span>
+        ),
+      }),
+      columnHelper.accessor("description", {
+        header: "Descrição",
+        cell: (info) => (
+          <span className="text-muted-foreground line-clamp-1 max-w-[240px] block">
+            {info.getValue() || "—"}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("category", {
+        header: "Categoria",
+        cell: (info) => {
+          const cat = CATEGORY_MAP[info.getValue()];
+          return cat ? (
+            <Badge variant="outline" className={`text-[10px] ${cat.color}`}>{cat.label}</Badge>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
+      }),
+      columnHelper.accessor("estimatedHours", {
+        header: "Horas",
+        cell: (info) => (
+          <span className="text-mono text-[11px] text-muted-foreground">{info.getValue()}h</span>
+        ),
+      }),
+      columnHelper.accessor("materialCost", {
+        header: "Custo (R$)",
+        cell: (info) => {
+          const val = info.getValue();
+          return val > 0 ? (
+            <span className="text-mono text-[11px] text-muted-foreground">{formatBRL(val)}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
+      }),
+      columnHelper.accessor("createdAt", {
+        header: "Criação",
+        sortingFn: "datetime",
+        cell: (info) => (
+          <span className="text-mono text-[11px] text-muted-foreground">
+            {new Date(info.getValue()).toLocaleDateString("pt-BR")}
+          </span>
+        ),
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => openEdit(row.original)}
+              className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Editar"
+            >
+              <Edit3 size={14} />
+            </button>
+            <button
+              onClick={() => handleDelete(row.original.id, row.original.name)}
+              className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-rose-glow transition-colors"
+              aria-label="Remover"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ),
+        enableSorting: false,
+        enableColumnFilter: false,
+      }),
+    ],
+    [openEdit],
+  );
+
+  const table = useReactTable({
+    data: products,
+    columns,
+    state: {
+      sorting,
+      globalFilter,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+      pagination,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    enableRowSelection: true,
+    globalFilterFn: "includesString",
+  });
+
+  const pageCount = table.getPageCount();
+  const canGoPrev = table.getCanPreviousPage();
+  const canGoNext = table.getCanNextPage();
+  const selectedCount = Object.keys(rowSelection).length;
 
   return (
     <>
@@ -146,12 +306,38 @@ export function ProductsClient({
             <ArrowLeft size={12} /> Painel
           </Link>
           <Package size={16} className="text-emerald-glow" />
-          <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            Produtos
-          </p>
+          <p className="text-mono text-[11px] uppercase tracking-widest text-muted-foreground">Produtos</p>
         </div>
         <div className="flex items-center gap-2">
-          {totalCount === 0 && (
+          {selectedCount > 0 && (
+            <span className="text-mono text-[11px] text-muted-foreground">
+              {selectedCount} selecionado{selectedCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button variant="outline" size="sm" type="button">
+                <Columns3 size={14} /> Colunas
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table.getAllLeafColumns().map((column) => {
+                if (column.id === "select" || column.id === "actions") return null;
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(val) => column.toggleVisibility(!!val)}
+                  >
+                    {typeof column.columnDef.header === "string"
+                      ? column.columnDef.header
+                      : column.id}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {products.length === 0 && (
             <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding}>
               <Sparkles size={14} /> {seeding ? "Carregando..." : "Carregar padrão"}
             </Button>
@@ -162,74 +348,156 @@ export function ProductsClient({
         </div>
       </header>
 
-      <section className="px-8 py-6">
-        <div className="mb-4 flex items-center gap-2">
-          <Button
-            variant={filterCategory === "all" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setFilterCategory("all")}
-          >
-            Todos
-          </Button>
-          {CATEGORIES.map((cat) => (
+      <section className="flex flex-col gap-4 px-8 py-6">
+        <div className="flex items-center gap-3">
+          <div className="relative max-w-xs flex-1">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produtos…"
+              value={globalFilter}
+              onChange={(e) => {
+                setGlobalFilter(e.target.value);
+                setPagination((p) => ({ ...p, pageIndex: 0 }));
+              }}
+              className="border-hairline bg-(--surface-2) pl-8"
+            />
+          </div>
+          <div className="flex items-center gap-1">
             <Button
-              key={cat.value}
-              variant={filterCategory === cat.value ? "default" : "ghost"}
+              variant={activeCategory === "all" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setFilterCategory(cat.value)}
+              onClick={() => {
+                setColumnFilters((prev) => prev.filter((f) => f.id !== "category"));
+                setPagination((p) => ({ ...p, pageIndex: 0 }));
+              }}
+              className="text-[11px]"
             >
-              {cat.label}
+              Todas
             </Button>
-          ))}
+            {CATEGORIES.map((cat) => (
+              <Button
+                key={cat.value}
+                variant={activeCategory === cat.value ? "default" : "ghost"}
+                size="sm"
+                onClick={() => {
+                  setColumnFilters((prev) => {
+                    const rest = prev.filter((f) => f.id !== "category");
+                    return [...rest, { id: "category", value: cat.value }];
+                  });
+                  setPagination((p) => ({ ...p, pageIndex: 0 }));
+                }}
+                className="text-[11px]"
+              >
+                {cat.label}
+              </Button>
+            ))}
+          </div>
+          <span className="text-mono text-[11px] text-muted-foreground">
+            {table.getFilteredRowModel().rows.length} registro{table.getFilteredRowModel().rows.length !== 1 ? "s" : ""}
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => {
-            const cat = categoryLabel(p.category);
-            return (
-              <Card key={p.id} className="bg-(--surface-1)">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                      {p.description && (
-                        <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">{p.description}</p>
+        <div className="rounded-xl border border-hairline bg-(--surface-1) overflow-hidden">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : (
+                        <button
+                          type="button"
+                          className="group inline-flex items-center gap-1 text-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {{
+                            asc: <ChevronUp size={12} className="text-emerald-glow" />,
+                            desc: <ChevronDown size={12} className="text-emerald-glow" />,
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </button>
                       )}
-                    </div>
-                    <button
-                      onClick={() => handleDelete(p.id, p.name)}
-                      className="shrink-0 text-muted-foreground/40 hover:text-rose-glow"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {cat && <Badge variant="outline" className={`text-[10px] ${cat.color}`}>{cat.label}</Badge>}
-                    <span className="text-[11px] text-muted-foreground">{p.estimatedHours}h</span>
-                    {p.materialCost > 0 && (
-                      <span className="text-[11px] text-muted-foreground">· Custo: {formatBRL(p.materialCost)}</span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => openEdit(p)}
-                    className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-                  >
-                    <Edit3 size={10} /> Editar
-                  </button>
-                </CardContent>
-              </Card>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="col-span-full flex flex-col items-center gap-3 py-12 text-center">
-              <Package size={32} className="text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">Nenhum produto encontrado</p>
-              <Button size="sm" onClick={totalCount === 0 ? handleSeed : openCreate}>
-                {totalCount === 0 ? <Sparkles size={14} /> : <Plus size={14} />}
-                {totalCount === 0 ? "Carregar produtos padrão" : "Criar primeiro produto"}
-              </Button>
-            </div>
-          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                    {products.length === 0
+                      ? "Nenhum produto cadastrado."
+                      : "Nenhum produto encontrado para esta busca."}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() ? "selected" : undefined}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-mono text-[11px] text-muted-foreground">
+              Página {pagination.pageIndex + 1} de {pageCount}
+            </span>
+            <Select
+              value={String(pagination.pageSize)}
+              onValueChange={(v) => setPagination({ pageIndex: 0, pageSize: Number(v) })}
+            >
+              <SelectTrigger className="h-7 w-24 border-hairline bg-(--surface-2) text-[11px] text-muted-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[5, 10, 20, 50].map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size} / pág
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon-sm" onClick={() => table.setPageIndex(0)} disabled={!canGoPrev}>
+              <ChevronsLeft size={14} />
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={() => table.previousPage()} disabled={!canGoPrev}>
+              <ChevronLeft size={14} />
+            </Button>
+            {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
+              const end = Math.min(pageCount, Math.max(5, pagination.pageIndex + 3));
+              const start = Math.max(0, end - 5);
+              const page = start + i;
+              if (page >= pageCount) return null;
+              return (
+                <Button
+                  key={page}
+                  variant={page === pagination.pageIndex ? "default" : "ghost"}
+                  size="icon-sm"
+                  onClick={() => table.setPageIndex(page)}
+                >
+                  {page + 1}
+                </Button>
+              );
+            })}
+            <Button variant="ghost" size="icon-sm" onClick={() => table.nextPage()} disabled={!canGoNext}>
+              <ChevronRight size={14} />
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={() => table.setPageIndex(pageCount - 1)} disabled={!canGoNext}>
+              <ChevronsRight size={14} />
+            </Button>
+          </div>
         </div>
       </section>
 

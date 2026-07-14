@@ -1,15 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   LayoutDashboard,
   Users,
   Swords,
   Radio,
-  FileSignature,
-  Calculator,
-  FileText,
-  Receipt,
   Dumbbell,
   Wallet,
   CalendarSync,
@@ -24,8 +20,10 @@ import {
   Plus,
   Trash2,
   MessageSquare,
-  ExternalLink,
-  Package,
+  ChevronRight,
+  Globe,
+  Zap,
+  QrCode,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -37,6 +35,7 @@ import { deleteProject } from "@/lib/actions/projects";
 import { Kbd } from "@/components/ui/kbd";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   ContextMenu,
@@ -76,22 +75,21 @@ const navGroups: { label: string; items: { icon: typeof LayoutDashboard; label: 
     items: [
       { icon: Swords, label: "Hunter", href: "/adm/hunter-system" },
       { icon: Radio, label: "Pipeline", href: "/adm/pipeline" },
+      { icon: QrCode, label: "Hunter Mobile", href: "/hunter" },
     ],
   },
   {
     label: "Comercial",
     items: [
-      { icon: Calculator, label: "Orçamento", href: "/adm/budget" },
-      { icon: Package, label: "Produtos", href: "/adm/products" },
-      { icon: FileText, label: "Contrato", href: "/adm/contract" },
-      { icon: Receipt, label: "Recibo", href: "/adm/receipt" },
+
     ],
   },
   {
     label: "Desenvolvimento",
     items: [
-      { icon: MessageSquare, label: "Briefing", href: "/adm/project" },
-      { icon: ExternalLink, label: "Portal Cliente", href: "/track" },
+      { icon: MessageSquare, label: "Briefing", href: "/adm/briefing" },
+      { icon: ClipboardList, label: "Ordem de Serviço", href: "/adm/os" },
+      { icon: Globe, label: "Entregas", href: "/adm/deliverables" },
     ],
   },
   {
@@ -100,6 +98,7 @@ const navGroups: { label: string; items: { icon: typeof LayoutDashboard; label: 
       { icon: Dumbbell, label: "Evolução", href: "/adm/growth" },
       { icon: CalendarSync, label: "Agenda", href: "/adm/calendar" },
       { icon: ClipboardList, label: "Checklists", href: "/adm/checklist-templates" },
+      { icon: Zap, label: "Capacidade", href: "/adm/settings/work-schedule" },
     ],
   },
   {
@@ -127,92 +126,83 @@ function IconRail({ config }: { config: WorkspaceConfig }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const groupIcon = (groupLabel: string) => {
-    switch (groupLabel) {
-      case "Gestão": return LayoutDashboard;
-      case "Prospecção": return Swords;
-      case "Comercial": return FileSignature;
-      case "Desenvolvimento": return MessageSquare;
-      case "Pessoal": return Dumbbell;
-      case "Sistema": return Shield;
-      default: return LayoutDashboard;
-    }
-  };
-
   return (
     <TooltipProvider>
-      <aside className="flex w-[68px] shrink-0 flex-col items-center gap-2 border-r border-hairline bg-(--surface-0) py-4">
-        <Link
-          href="/adm"
-          className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-glow to-violet-glow text-(--surface-0) font-black"
-        >
-          {config.workspaceName.charAt(0)}
-        </Link>
-        <div className="h-px w-8 bg-hairline" />
-
-        {allRailItems.map((it) => {
-          const Icon = it.icon;
-          const active = pathname === it.href || pathname.startsWith(it.href + "/");
-          const group = navGroups.find((g) => g.items.includes(it));
-          const groupItems = group?.items ?? [];
-
-          const iconEl = (
-            <Link
-              href={it.href}
-              title={it.label}
-              className={[
-                "group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all",
-                active
-                  ? "bg-(--surface-2) text-foreground"
-                  : "text-muted-foreground hover:bg-(--surface-2) hover:text-foreground hover:rounded-xl",
-              ].join(" ")}
-            >
-              {active && <span className="absolute -left-4 h-8 w-1 rounded-r-full bg-emerald-glow" />}
-              <Icon size={20} strokeWidth={1.8} />
-            </Link>
-          );
-
-          if (!group || groupItems.length <= 1) {
-            return (
-              <Tooltip key={it.label}>
-                <TooltipTrigger>{iconEl}</TooltipTrigger>
-                <TooltipContent side="right">{it.label}</TooltipContent>
-              </Tooltip>
-            );
-          }
-
-          return (
-            <ContextMenu key={it.label}>
-              <ContextMenuTrigger>
-                <Tooltip>
-                  <TooltipTrigger>{iconEl}</TooltipTrigger>
-                  <TooltipContent side="right">{it.label}</TooltipContent>
-                </Tooltip>
-              </ContextMenuTrigger>
-              <ContextMenuContent className="w-48">
-                <p className="px-2 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {group.label}
-                </p>
-                <ContextMenuSeparator />
-                {groupItems.map((gi) => {
-                  const Gi = gi.icon;
-                  const giActive = pathname === gi.href || pathname.startsWith(gi.href + "/");
-                  return (
-                    <ContextMenuItem key={gi.label} onClick={() => router.push(gi.href)}>
-                      <span className={`flex items-center gap-2 ${giActive ? "text-emerald-glow" : ""}`}>
-                        <Gi size={14} /> {gi.label}
-                      </span>
-                    </ContextMenuItem>
-                  );
-                })}
-              </ContextMenuContent>
-            </ContextMenu>
-          );
-        })}
-
-        <div className="mt-auto flex h-11 w-11 items-center justify-center rounded-full bg-(--surface-2) text-xs font-semibold">
-          {config.userInitials}
+      <aside className="flex h-full w-17 shrink-0 flex-col items-center border-r border-hairline bg-(--surface-0)">
+        <div className="flex shrink-0 flex-col items-center gap-2 py-4">
+          <Link
+            href="/adm"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-glow to-violet-glow text-(--surface-0) font-black"
+          >
+            {config.workspaceName.charAt(0)}
+          </Link>
+          <div className="h-px w-8 bg-hairline" />
         </div>
+
+        <div className="min-h-0 flex-1 w-full overflow-y-auto px-2 scrollbar-thin">
+          <div className="flex flex-col items-center gap-2 pb-4">
+            {allRailItems.map((it) => {
+              const Icon = it.icon;
+              const active = pathname === it.href || pathname.startsWith(it.href + "/");
+              const group = navGroups.find((g) => g.items.includes(it));
+              const groupItems = group?.items ?? [];
+
+              const iconEl = (
+                <Link
+                  href={it.href}
+                  title={it.label}
+                  className={[
+                    "group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all",
+                    active
+                      ? "bg-(--surface-2) text-foreground"
+                      : "text-muted-foreground hover:bg-(--surface-2) hover:text-foreground hover:rounded-xl",
+                  ].join(" ")}
+                >
+                  {active && <span className="absolute -left-4 h-8 w-1 rounded-r-full bg-emerald-glow" />}
+                  <Icon size={20} strokeWidth={1.8} />
+                </Link>
+              );
+
+              if (!group || groupItems.length <= 1) {
+                return (
+                  <Tooltip key={it.label}>
+                    <TooltipTrigger>{iconEl}</TooltipTrigger>
+                    <TooltipContent side="right">{it.label}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <ContextMenu key={it.label}>
+                  <ContextMenuTrigger>
+                    <Tooltip>
+                      <TooltipTrigger>{iconEl}</TooltipTrigger>
+                      <TooltipContent side="right">{it.label}</TooltipContent>
+                    </Tooltip>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-48">
+                    <p className="px-2 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {group.label}
+                    </p>
+                    <ContextMenuSeparator />
+                    {groupItems.map((gi) => {
+                      const Gi = gi.icon;
+                      const giActive = pathname === gi.href || pathname.startsWith(gi.href + "/");
+                      return (
+                        <ContextMenuItem key={gi.label} onClick={() => router.push(gi.href)}>
+                          <span className={`flex items-center gap-2 ${giActive ? "text-emerald-glow" : ""}`}>
+                            <Gi size={14} /> {gi.label}
+                          </span>
+                        </ContextMenuItem>
+                      );
+                    })}
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            })}
+          </div>
+        </div>
+
       </aside>
     </TooltipProvider>
   );
@@ -248,28 +238,28 @@ function ProjectSidebar({
   }, [projects, activeFilter, searchQuery]);
 
   return (
-    <aside className="flex w-[268px] shrink-0 flex-col border-r border-hairline bg-(--surface-1) h-full">
+    <aside className="flex w-67 shrink-0 flex-col border-r border-hairline bg-(--surface-1) h-full">
       <div className="flex items-center justify-between px-4 pb-3 pt-5">
         <div>
           <p className="text-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Espaço de trabalho
+            Workspace
           </p>
-          <button onClick={onEditWorkspace} className="text-left">
-            <h2 className="text-[15px] font-semibold text-foreground hover:text-emerald-glow transition-colors">{config.workspaceName}</h2>
-          </button>
+          <Button variant="link" size="sm" onClick={onEditWorkspace} className="h-auto p-0 text-[15px] font-semibold text-foreground hover:text-emerald-glow">
+            {config.workspaceName}
+          </Button>
         </div>
         <ChevronDown size={16} className="text-muted-foreground" />
       </div>
 
-      <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg bg-(--surface-2) px-3 py-2 text-sm">
-        <Search size={14} className="text-muted-foreground shrink-0" />
-        <input
+      <div className="mx-3 mb-3 relative">
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Buscar projetos, clientes…"
-          className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+          className="border-hairline bg-(--surface-2) pl-8 text-xs"
         />
-        <Kbd className="ml-auto">⌘K</Kbd>
+        <Kbd className="absolute right-2 top-1/2 -translate-y-1/2">⌘K</Kbd>
       </div>
 
       <div className="px-4 pb-2 pt-1">
@@ -306,9 +296,9 @@ function ProjectSidebar({
                   ? "Nenhum projeto encontrado para esta busca"
                   : "Nenhum projeto ainda"}
               </p>
-              <button onClick={() => router.push("/adm?newProject=1")} className="inline-flex items-center gap-1 rounded-md bg-emerald-glow px-3 py-1.5 text-[11px] font-semibold text-(--surface-0) hover:brightness-110">
+              <Button size="sm" onClick={() => router.push("/adm?newProject=1")}>
                 <Plus size={12} /> Criar primeiro projeto
-              </button>
+              </Button>
             </div>
           ) : (
             filteredProjects.map((p) => {
@@ -371,6 +361,18 @@ export function AppShell({
   config: WorkspaceConfig;
 }) {
   const [workspaceEditOpen, setWorkspaceEditOpen] = useState(false);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        const input = document.querySelector<HTMLInputElement>('[placeholder="Buscar projetos, clientes\u2026"]');
+        input?.focus();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div className="flex h-screen w-full bg-(--surface-0) text-foreground">

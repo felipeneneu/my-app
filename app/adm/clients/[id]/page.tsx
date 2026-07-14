@@ -1,12 +1,15 @@
-import { getClient, getClientProjects, getClientBudgets } from "@/lib/actions/clients";
+import { getClient, getClientProjects } from "@/lib/actions/clients";
+import { getClientContacts } from "@/lib/actions/client-contacts";
+import { getClientAddresses } from "@/lib/actions/addresses";
 import { ClientDetailClient } from "./client";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [client, projects, budgets] = await Promise.all([
+  const [client, projects, contacts, addresses] = await Promise.all([
     getClient(id),
     getClientProjects(id),
-    getClientBudgets(id),
+    getClientContacts(id),
+    getClientAddresses(id),
   ]);
   if (!client) return <div className="p-8 text-muted-foreground">Cliente não encontrado</div>;
 
@@ -14,7 +17,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     <ClientDetailClient
       client={client}
       projects={projects}
-      budgets={budgets.map(b => ({ id: b.id, contentJson: b.contentJson }))}
+      contacts={contacts}
+      addresses={addresses}
     />
   );
 }

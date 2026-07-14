@@ -6,6 +6,7 @@
 .pnp.*
 .yarn/*
 .agent/*
+agent/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases

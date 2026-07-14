@@ -11,6 +11,13 @@ export type Client = {
   email: string | null;
   phone: string | null;
   document: string | null;
+  documentType: "cpf" | "cnpj" | null;
+  cep: string | null;
+  street: string | null;
+  number: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
   notes: string | null;
   createdAt: string;
 };
@@ -28,6 +35,13 @@ export async function createClient(data: {
   email?: string;
   phone?: string;
   document?: string;
+  documentType?: "cpf" | "cnpj";
+  cep?: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
   notes?: string;
 }) {
   const client = await db.insert(clients).values({
@@ -35,6 +49,13 @@ export async function createClient(data: {
     email: data.email ?? null,
     phone: data.phone ?? null,
     document: data.document ?? null,
+    documentType: data.documentType ?? "cpf",
+    cep: data.cep ?? null,
+    street: data.street ?? null,
+    number: data.number ?? null,
+    neighborhood: data.neighborhood ?? null,
+    city: data.city ?? null,
+    state: data.state ?? null,
     notes: data.notes ?? null,
   }).returning() as unknown as Client[];
 
@@ -47,6 +68,13 @@ export async function updateClient(id: string, data: Partial<{
   email: string;
   phone: string;
   document: string;
+  documentType: "cpf" | "cnpj";
+  cep: string;
+  street: string;
+  number: string;
+  neighborhood: string;
+  city: string;
+  state: string;
   notes: string;
 }>) {
   await db.update(clients).set(data).where(eq(clients.id, id));
